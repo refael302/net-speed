@@ -1,5 +1,6 @@
 {
-  "versionCode": 6,
-  "versionName": "1.5.0",
-  "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk"
+  "versionCode": 7,
+  "versionName": "1.6.0",
+  "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
+  "notes": "רואים במסך את הגרסה המותקנת.\nאחרי בדיקת עדכון נפתח חלון עם הגרסה החדשה ופירוט השינויים.\nאם אין עדכון, מופיעה הודעה עם כפתור אישור."
 }

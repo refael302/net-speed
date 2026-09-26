@@ -18,6 +18,15 @@ class UpdateManifestTest {
         assertEquals(2L, manifest.versionCode)
         assertEquals("1.1.0", manifest.versionName)
         assertEquals("https://example.com/netstrip.apk", manifest.apkUrl)
+        assertEquals("", manifest.notes)
+    }
+
+    @Test
+    fun notesKeepLineBreaks() {
+        val manifest = parseUpdateManifest(
+            """{"versionCode": 7, "versionName": "1.6.0", "apkUrl": "https://example.com/a.apk", "notes": "שורה\nשנייה"}""",
+        )
+        assertEquals("שורה\nשנייה", manifest.notes)
     }
 
     @Test(expected = IllegalArgumentException::class)

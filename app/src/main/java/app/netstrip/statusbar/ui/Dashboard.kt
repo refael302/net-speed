@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Switch
@@ -63,6 +64,7 @@ import app.netstrip.core.GraphSpan
 import app.netstrip.core.axisLabel
 import app.netstrip.core.chartSeries
 import app.netstrip.core.niceAxisMax
+import app.netstrip.statusbar.BuildConfig
 import app.netstrip.statusbar.R
 import app.netstrip.statusbar.data.TrafficPoint
 import app.netstrip.statusbar.update.UpdateState
@@ -189,6 +191,12 @@ fun Dashboard(viewModel: DashboardViewModel) {
         }
 
         Spacer(Modifier.height(24.dp))
+        Text(
+            stringResource(R.string.installed_version, BuildConfig.VERSION_NAME),
+            color = NetMuted,
+            fontSize = 14.sp,
+        )
+        Spacer(Modifier.height(8.dp))
         Button(
             onClick = viewModel::checkForUpdate,
             enabled = updateState !is UpdateState.Checking && updateState !is UpdateState.Downloading,
@@ -208,28 +216,64 @@ fun Dashboard(viewModel: DashboardViewModel) {
                 },
             )
         }
-        when (val state = updateState) {
-            UpdateState.UpToDate -> {
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.up_to_date), color = NetMuted, fontSize = 14.sp)
-            }
-            UpdateState.Failed -> {
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.check_failed), color = NetDanger, fontSize = 14.sp)
-            }
-            is UpdateState.Available -> {
-                Spacer(Modifier.height(10.dp))
-                Button(
-                    onClick = viewModel::installUpdate,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = NetDown, contentColor = Color(0xFF06281C)),
-                ) {
-                    Text(stringResource(R.string.update_app))
-                }
-            }
-            else -> Unit
-        }
+        UpdateResultDialog(updateState, viewModel)
     }
+}
+
+@Composable
+private fun UpdateResultDialog(state: UpdateState, viewModel: DashboardViewModel) {
+    when (state) {
+        UpdateState.UpToDate -> NoticeDialog(
+            body = stringResource(R.string.no_update),
+            onDismiss = viewModel::dismissUpdate,
+        )
+        UpdateState.Failed -> NoticeDialog(
+            body = stringResource(R.string.check_failed),
+            onDismiss = viewModel::dismissUpdate,
+        )
+        is UpdateState.Available -> {
+            AlertDialog(
+                onDismissRequest = viewModel::dismissUpdate,
+                containerColor = NetCard,
+                titleContentColor = NetText,
+                textContentColor = NetText,
+                title = { Text(stringResource(R.string.new_version, state.manifest.versionName)) },
+                text = {
+                    Text(state.manifest.notes.ifBlank { stringResource(R.string.no_notes) })
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = viewModel::installUpdate,
+                        enabled = true,
+                    ) {
+                        Text(stringResource(R.string.update_app), color = NetDown)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissUpdate) {
+                        Text(stringResource(R.string.ok), color = NetMuted)
+                    }
+                },
+            )
+        }
+        UpdateState.Downloading -> Unit
+        else -> Unit
+    }
+}
+
+@Composable
+private fun NoticeDialog(body: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = NetCard,
+        textContentColor = NetText,
+        text = { Text(body) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.ok), color = NetDown)
+            }
+        },
+    )
 }
 
 @Composable

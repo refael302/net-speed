@@ -126,6 +126,11 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    fun dismissUpdate() {
+        if (updates.value is UpdateState.Downloading || updates.value is UpdateState.Checking) return
+        updates.value = UpdateState.Idle
+    }
+
     fun checkForUpdate() {
         if (updates.value is UpdateState.Checking || updates.value is UpdateState.Downloading) return
         updates.value = UpdateState.Checking

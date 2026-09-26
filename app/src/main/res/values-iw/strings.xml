@@ -40,6 +40,11 @@
     <string name="unsupported">המכשיר לא מדווח מוני תעבורה, אז אי אפשר לחשב מהירות.</string>
     <string name="privacy">המדידה נשארת בטלפון. לאפליקציה אין הרשאת אינטרנט והיא לא שולחת כלום החוצה.</string>
     <string name="all_traffic">כל התעבורה</string>
+    <string name="installed_version">גרסה מותקנת %1$s</string>
+    <string name="new_version">גרסה %1$s</string>
+    <string name="no_update">אין עדכון</string>
+    <string name="no_notes">לא פורסם פירוט לגרסה הזו.</string>
+    <string name="ok">אישור</string>
     <string name="check_update">בדוק עדכון גרסה</string>
     <string name="checking_update">בודק…</string>
     <string name="up_to_date">הגרסה העדכנית מותקנת</string>

@@ -4,6 +4,7 @@ data class UpdateManifest(
     val versionCode: Long,
     val versionName: String,
     val apkUrl: String,
+    val notes: String = "",
 )
 
 fun parseUpdateManifest(json: String): UpdateManifest {
@@ -13,12 +14,16 @@ fun parseUpdateManifest(json: String): UpdateManifest {
     if (!apkUrl.startsWith("https://")) {
         throw IllegalArgumentException("Update address must be https")
     }
-    return UpdateManifest(versionCode, versionName, apkUrl)
+    val notes = optionalStringField(json, "notes").orEmpty().replace("\\n", "\n")
+    return UpdateManifest(versionCode, versionName, apkUrl, notes)
 }
 
 private fun stringField(json: String, name: String): String {
-    val match = Regex(""""$name"\s*:\s*"([^"]*)"""").find(json)
-        ?: throw IllegalArgumentException("Missing $name")
+    return optionalStringField(json, name) ?: throw IllegalArgumentException("Missing $name")
+}
+
+private fun optionalStringField(json: String, name: String): String? {
+    val match = Regex(""""$name"\s*:\s*"([^"]*)"""").find(json) ?: return null
     return match.groupValues[1]
 }
 

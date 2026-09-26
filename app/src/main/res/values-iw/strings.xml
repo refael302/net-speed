@@ -31,6 +31,7 @@
     <string name="boot_hint">בגלקסי כדאי גם לבחור סוללה ללא הגבלה, אחרת סמסונג עלולה לעצור את הסמל אחרי הפעלה מחדש.</string>
     <string name="notifications_needed">בלי התראות אנדרואיד לא משאיר את הסמל בשורת המצב.</string>
     <string name="allow_notifications">אישור התראות</string>
+    <string name="boot_battery">כדי שיעלה אחרי הדלקה, צריך לאשר סוללה ללא הגבלה.</string>
     <string name="open_notification_settings">פתיחת הגדרות ההתראות</string>
     <string name="battery_title">כדי שהסמל לא ייעצר</string>
     <string name="battery_body">סמסונג מקפיאה עבודה ברקע אלא אם השימוש בסוללה של האפליקציה מוגדר ללא הגבלה.</string>

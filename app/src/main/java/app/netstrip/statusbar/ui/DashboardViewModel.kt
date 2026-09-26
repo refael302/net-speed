@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,6 +41,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     private val notifications = MutableStateFlow(true)
     val notificationsAllowed: StateFlow<Boolean> = notifications
 
+    private val batteryOk = MutableStateFlow(true)
+    val batteryUnrestricted: StateFlow<Boolean> = batteryOk
+    private var askedBattery = false
+
     private val note = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = note
 
@@ -66,8 +71,33 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshSystemState() {
         val app = getApplication<Application>()
         notifications.value = app.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        val power = app.getSystemService(PowerManager::class.java)
+        batteryOk.value = power.isIgnoringBatteryOptimizations(app.packageName)
+        if (!batteryOk.value && !askedBattery) {
+            askedBattery = true
+            allowUnrestrictedBattery()
+        }
         if (prefs.enabled.value && notifications.value && !LiveSpeed.serviceRunning.value) {
             setStatusBar(true)
+        }
+    }
+
+    fun allowUnrestrictedBattery() {
+        val app = getApplication<Application>()
+        val power = app.getSystemService(PowerManager::class.java)
+        if (power.isIgnoringBatteryOptimizations(app.packageName)) {
+            batteryOk.value = true
+            return
+        }
+        val request = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            .setData(Uri.parse("package:${app.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val fallback = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            app.startActivity(request)
+        } catch (_: Exception) {
+            app.startActivity(fallback)
         }
     }
 

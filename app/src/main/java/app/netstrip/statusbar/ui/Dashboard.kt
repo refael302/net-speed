@@ -73,6 +73,7 @@ fun Dashboard(viewModel: DashboardViewModel) {
     val graphSpan by viewModel.graphSpan.collectAsStateWithLifecycle()
     val statusBarOn by viewModel.statusBarOn.collectAsStateWithLifecycle()
     val notificationsAllowed by viewModel.notificationsAllowed.collectAsStateWithLifecycle()
+    val batteryUnrestricted by viewModel.batteryUnrestricted.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
 
@@ -142,6 +143,11 @@ fun Dashboard(viewModel: DashboardViewModel) {
                 }
             }) {
                 Text(stringResource(R.string.allow_notifications), color = NetDown)
+            }
+        }
+        if (!batteryUnrestricted) {
+            TextButton(onClick = viewModel::allowUnrestrictedBattery) {
+                Text(stringResource(R.string.boot_battery), color = NetDown)
             }
         }
         if (message != null) {

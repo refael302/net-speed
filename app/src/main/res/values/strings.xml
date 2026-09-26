@@ -31,6 +31,7 @@
     <string name="boot_hint">On a Galaxy, also set this app to unrestricted battery, or Samsung may stop it after a restart.</string>
     <string name="notifications_needed">Notifications have to stay on, or Android will not keep the icon in the status bar.</string>
     <string name="allow_notifications">Allow notifications</string>
+    <string name="boot_battery">To come back after a restart, allow unrestricted battery.</string>
     <string name="open_notification_settings">Open notification settings</string>
     <string name="battery_title">Keep the icon alive</string>
     <string name="battery_body">Samsung freezes background work unless battery use for this app is set to unrestricted.</string>

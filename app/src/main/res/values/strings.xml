@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Network speed</string>
+    <string name="tile_label">Network speed</string>
+    <string name="subtitle">Live throughput on the active network, once a second.</string>
+    <string name="help">Help</string>
+    <string name="close">Close</string>
+    <string name="download">Download</string>
+    <string name="upload">Upload</string>
+    <string name="measuring">Measuring…</string>
+    <string name="last_minute">Last minute of download</string>
+    <string name="dash">—</string>
+    <string name="transport_wifi">Wi-Fi</string>
+    <string name="transport_cellular">Cellular</string>
+    <string name="transport_ethernet">Ethernet</string>
+    <string name="transport_other">Other network</string>
+    <string name="transport_none">No active network</string>
+    <string name="throughput_hint">This is current traffic, not a speed test. With nothing moving, the number stays near zero.</string>
+    <string name="show_in_status_bar">Show in the status bar</string>
+    <string name="status_hint">The number sits with the notification icons on the top row. Pull the shade down to see download and upload together.</string>
+    <string name="icon_content">What the icon shows</string>
+    <string name="icon_download">Download</string>
+    <string name="icon_upload">Upload</string>
+    <string name="icon_both">Both</string>
+    <string name="boot">Start when the phone boots</string>
+    <string name="boot_hint">On a Galaxy, also set this app to unrestricted battery, or Samsung may stop it after a restart.</string>
+    <string name="notifications_needed">Notifications have to stay on, or Android will not keep the icon in the status bar.</string>
+    <string name="allow_notifications">Allow notifications</string>
+    <string name="open_notification_settings">Open notification settings</string>
+    <string name="battery_title">Keep the icon alive</string>
+    <string name="battery_body">Samsung freezes background work unless battery use for this app is set to unrestricted.</string>
+    <string name="battery_action">Battery settings</string>
+    <string name="start_failed">The icon did not start. Allow notifications and try the switch again.</string>
+    <string name="unsupported">This phone is not reporting traffic counters, so the speed cannot be calculated.</string>
+    <string name="privacy">Measurement stays on the phone. This app has no internet permission and does not send anything out.</string>
+    <string name="stop">Stop</string>
+    <string name="channel_name">Status bar icon</string>
+    <string name="channel_desc">Shows download and upload speed. Leave this notification on so the icon can stay in the status bar.</string>
+    <string name="notification_measuring">Measuring the active network…</string>
+    <string name="help_title">Where the speed shows up</string>
+    <string name="help_body">The number is a status bar icon in the notification area. Android does not let an app draw beside the clock or the battery.\n\nOne UI usually keeps only three notification icons. If the row is full, this one can be pushed out.\n\nTo keep it visible:\n1. Allow notifications for this app.\n2. In phone settings, open Notifications, then advanced settings, and show status bar icons rather than only a count.\n3. In this app\'s battery settings, choose unrestricted.\n\nOn Wi-Fi the speed is Wi-Fi traffic. On cellular it is cellular traffic. A VPN can make that split less exact.\n\nIf the icon is too small, show only download or only upload.\n\nYou can also add a quick settings tile: pull the shade all the way down, edit the buttons, and drag Network speed in.</string>
+</resources>

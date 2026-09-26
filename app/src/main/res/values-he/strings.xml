@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">מהירות רשת</string>
+    <string name="tile_label">מהירות רשת</string>
+    <string name="subtitle">הקצב על הרשת הפעילה, כל שנייה.</string>
+    <string name="help">עזרה</string>
+    <string name="close">סגירה</string>
+    <string name="download">הורדה</string>
+    <string name="upload">העלאה</string>
+    <string name="measuring">מודד…</string>
+    <string name="last_minute">דקת ההורדה האחרונה</string>
+    <string name="dash">—</string>
+    <string name="transport_wifi">Wi-Fi</string>
+    <string name="transport_cellular">סלולרי</string>
+    <string name="transport_ethernet">אתרנט</string>
+    <string name="transport_other">רשת אחרת</string>
+    <string name="transport_none">אין רשת פעילה</string>
+    <string name="throughput_hint">זה הקצב עכשיו, לא בדיקת מהירות. בלי הורדה או העלאה המספר נשאר קרוב לאפס.</string>
+    <string name="show_in_status_bar">הצגה בשורת המצב</string>
+    <string name="status_hint">המספר מופיע כסמל באזור ההתראות בשורה העליונה. משיכה למטה מציגה גם הורדה וגם העלאה.</string>
+    <string name="icon_content">מה שמופיע בסמל</string>
+    <string name="icon_download">הורדה</string>
+    <string name="icon_upload">העלאה</string>
+    <string name="icon_both">שניהם</string>
+    <string name="boot">הפעלה עם הדלקת המכשיר</string>
+    <string name="boot_hint">בגלקסי כדאי גם לבחור סוללה ללא הגבלה, אחרת סמסונג עלולה לעצור את הסמל אחרי הפעלה מחדש.</string>
+    <string name="notifications_needed">בלי התראות אנדרואיד לא משאיר את הסמל בשורת המצב.</string>
+    <string name="allow_notifications">אישור התראות</string>
+    <string name="open_notification_settings">פתיחת הגדרות ההתראות</string>
+    <string name="battery_title">כדי שהסמל לא ייעצר</string>
+    <string name="battery_body">סמסונג מקפיאה עבודה ברקע אלא אם השימוש בסוללה של האפליקציה מוגדר ללא הגבלה.</string>
+    <string name="battery_action">הגדרות סוללה</string>
+    <string name="start_failed">הסמל לא עלה. אשרו התראות ונסו את המתג שוב.</string>
+    <string name="unsupported">המכשיר לא מדווח מוני תעבורה, אז אי אפשר לחשב מהירות.</string>
+    <string name="privacy">המדידה נשארת בטלפון. לאפליקציה אין הרשאת אינטרנט והיא לא שולחת כלום החוצה.</string>
+    <string name="stop">עצירה</string>
+    <string name="channel_name">סמל בשורת המצב</string>
+    <string name="channel_desc">מציג את מהירות ההורדה וההעלאה. השאירו את ההתראה פעילה כדי שהסמל יישאר למעלה.</string>
+    <string name="notification_measuring">מודד את הרשת הפעילה…</string>
+    <string name="help_title">איפה רואים את המהירות</string>
+    <string name="help_body">המספר הוא סמל בשורת המצב, באזור סמלי ההתראות. אנדרואיד לא נותן לאפליקציה לצייר ליד השעון או הסוללה.\n\nב-One UI מוצגים בדרך כלל עד שלושה סמלי התראות. אם השורה מלאה, הסמל הזה עלול להידחק החוצה.\n\nכדי שישאר:\n1. לאשר התראות לאפליקציה.\n2. בהגדרות הטלפון: התראות, ואז הגדרות מתקדמות, ולבחור ששורת המצב מציגה סמלים ולא רק מספר.\n3. בהגדרות הסוללה של האפליקציה לבחור ללא הגבלה.\n\nעל Wi-Fi המהירות היא של ה-Wi-Fi. על סלולר היא של הרשת הסלולרית. VPN עלול לערבב את החלוקה.\n\nאם הסמל קטן מדי, אפשר להציג רק הורדה או רק העלאה.\n\nאפשר גם להוסיף אריח בהגדרות המהירות: מושכים את הלוח עד הסוף, עורכים את הכפתורים, וגוררים את מהירות רשת.</string>
+</resources>

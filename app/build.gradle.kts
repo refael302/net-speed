@@ -14,9 +14,13 @@ android {
         applicationId = "app.netstrip.statusbar"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
-        buildConfigField("String", "UPDATE_MANIFEST_URL", "\"https://litter.catbox.moe/8llct6.json\"")
+        versionCode = 4
+        versionName = "1.3.0"
+        buildConfigField(
+            "String",
+            "UPDATE_MANIFEST_URL",
+            "\"https://raw.githubusercontent.com/refael302/net-speed/main/dist/version.json\"",
+        )
     }
 
     buildTypes {

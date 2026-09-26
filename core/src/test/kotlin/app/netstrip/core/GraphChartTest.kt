@@ -7,8 +7,8 @@ import org.junit.Test
 class GraphChartTest {
     @Test
     fun emptyWindowIsAllZeros() {
-        val series = chartSeries(emptyList(), GraphSpan.SECONDS, nowMillis = 30_000L)
-        assertEquals(15, series.size)
+        val series = chartSeries(emptyList(), GraphSpan.MINUTE, nowMillis = 60_000L)
+        assertEquals(30, series.size)
         assertTrue(series.all { it.down == 0f && it.up == 0f })
     }
 
@@ -17,7 +17,7 @@ class GraphChartTest {
         val now = 60_000L
         val series = chartSeries(
             listOf(ChartSample(down = 10f, up = 4f, atMillis = now - 500L)),
-            GraphSpan.SECONDS,
+            GraphSpan.MINUTE,
             now,
         )
         assertEquals(0f, series.first().down, 0.001f)
@@ -32,8 +32,8 @@ class GraphChartTest {
                 ChartSample(5f, 1f, 100L),
                 ChartSample(9f, 2f, 1_500L),
             ),
-            GraphSpan.SECONDS,
-            nowMillis = 30_000L,
+            GraphSpan.MINUTE,
+            nowMillis = 60_000L,
         )
         assertEquals(9f, series.first().down, 0.001f)
         assertEquals(2f, series.first().up, 0.001f)
@@ -42,7 +42,6 @@ class GraphChartTest {
     @Test
     fun longerRangesUseAReadableBucketCount() {
         assertEquals(30, chartSeries(emptyList(), GraphSpan.MINUTE, 60_000L).size)
-        assertEquals(60, chartSeries(emptyList(), GraphSpan.HALF_HOUR, 1_800_000L).size)
         assertEquals(60, chartSeries(emptyList(), GraphSpan.HOUR, 3_600_000L).size)
     }
 

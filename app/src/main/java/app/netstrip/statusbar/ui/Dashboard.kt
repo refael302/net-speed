@@ -153,14 +153,8 @@ fun Dashboard(viewModel: DashboardViewModel) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SpanButton(stringResource(R.string.range_seconds), graphSpan == GraphSpan.SECONDS, Modifier.weight(1f)) {
-                viewModel.selectSpan(GraphSpan.SECONDS)
-            }
             SpanButton(stringResource(R.string.range_minute), graphSpan == GraphSpan.MINUTE, Modifier.weight(1f)) {
                 viewModel.selectSpan(GraphSpan.MINUTE)
-            }
-            SpanButton(stringResource(R.string.range_half_hour), graphSpan == GraphSpan.HALF_HOUR, Modifier.weight(1.15f)) {
-                viewModel.selectSpan(GraphSpan.HALF_HOUR)
             }
             SpanButton(stringResource(R.string.range_hour), graphSpan == GraphSpan.HOUR, Modifier.weight(1f)) {
                 viewModel.selectSpan(GraphSpan.HOUR)

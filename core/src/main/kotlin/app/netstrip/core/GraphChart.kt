@@ -13,9 +13,7 @@ enum class GraphSpan(
     val windowMillis: Long,
     val bucketMillis: Long,
 ) {
-    SECONDS(30_000L, SAMPLE_PERIOD_MILLIS),
     MINUTE(60_000L, SAMPLE_PERIOD_MILLIS),
-    HALF_HOUR(30 * 60_000L, 30_000L),
     HOUR(60 * 60_000L, 60_000L),
 }
 

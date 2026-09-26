@@ -7,9 +7,7 @@
     <string name="close">Close</string>
     <string name="download">Download</string>
     <string name="upload">Upload</string>
-    <string name="range_seconds">Seconds</string>
     <string name="range_minute">Minute</string>
-    <string name="range_half_hour">Half hour</string>
     <string name="range_hour">Hour</string>
     <string name="axis_seconds">%1$ds</string>
     <string name="axis_minutes">%1$dm</string>

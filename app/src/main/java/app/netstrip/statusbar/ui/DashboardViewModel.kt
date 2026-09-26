@@ -34,7 +34,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val spark = LiveSpeed.spark
     val statusBarOn = prefs.enabled
 
-    private val spanState = MutableStateFlow(GraphSpan.SECONDS)
+    private val spanState = MutableStateFlow(GraphSpan.MINUTE)
     val graphSpan: StateFlow<GraphSpan> = spanState
 
     private val notifications = MutableStateFlow(true)

@@ -10,6 +10,13 @@ data class RateLabel(
     val icon: String,
 )
 
+fun axisLabel(bytesPerSec: Double): String {
+    val bytes = bytesPerSec.takeIf { it.isFinite() }?.coerceAtLeast(0.0) ?: 0.0
+    if (bytes < 1.0) return "0"
+    val label = labelFor(bytes)
+    return "${label.value} ${label.unit}"
+}
+
 fun labelFor(bytesPerSec: Double): RateLabel {
     val bytes = bytesPerSec.takeIf { it.isFinite() }?.coerceAtLeast(0.0) ?: 0.0
     val (scaled, unit) = when {

@@ -5,6 +5,12 @@ import org.junit.Test
 
 class SpeedFormatTest {
     @Test
+    fun axisLabelIncludesTheUnit() {
+        assertEquals("0", axisLabel(0.0))
+        assertEquals("1.50 KB/s", axisLabel(1_500.0))
+    }
+
+    @Test
     fun idleIsZeroBytes() {
         val label = labelFor(0.0)
         assertEquals("0", label.value)

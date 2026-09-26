@@ -8,6 +8,8 @@ import android.os.Build
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.netstrip.core.GraphSpan
+import app.netstrip.core.SAMPLE_PERIOD_MILLIS
 import app.netstrip.core.SpeedSampler
 import app.netstrip.statusbar.NetStripApp
 import app.netstrip.statusbar.R
@@ -31,6 +33,9 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     val spark = LiveSpeed.spark
     val statusBarOn = prefs.enabled
+
+    private val spanState = MutableStateFlow(GraphSpan.SECONDS)
+    val graphSpan: StateFlow<GraphSpan> = spanState
 
     private val notifications = MutableStateFlow(true)
     val notificationsAllowed: StateFlow<Boolean> = notifications
@@ -64,6 +69,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         if (prefs.enabled.value && notifications.value && !LiveSpeed.serviceRunning.value) {
             setStatusBar(true)
         }
+    }
+
+    fun selectSpan(span: GraphSpan) {
+        spanState.value = span
     }
 
     fun setStatusBar(enabled: Boolean) {
@@ -135,7 +144,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                 if (!LiveSpeed.serviceRunning.value && reading != null) {
                     LiveSpeed.publish(reading)
                 }
-                delay(1_000)
+                delay(SAMPLE_PERIOD_MILLIS)
             }
         }
     }

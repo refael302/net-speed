@@ -1,5 +1,6 @@
 package app.netstrip.statusbar.data
 
+import app.netstrip.core.HISTORY_MILLIS
 import app.netstrip.core.SpeedReading
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -7,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 data class TrafficPoint(
     val down: Float,
     val up: Float,
+    val atMillis: Long,
 )
 
 object LiveSpeed {
@@ -31,13 +33,18 @@ object LiveSpeed {
             readingState.value = reading
             when (reading) {
                 is SpeedReading.Live -> {
+                    val atMillis = System.currentTimeMillis()
                     history.addLast(
                         TrafficPoint(
                             down = reading.downBytesPerSec.toFloat(),
                             up = reading.upBytesPerSec.toFloat(),
+                            atMillis = atMillis,
                         ),
                     )
-                    while (history.size > 60) history.removeFirst()
+                    val cutoff = atMillis - HISTORY_MILLIS
+                    while (history.isNotEmpty() && history.first().atMillis < cutoff) {
+                        history.removeFirst()
+                    }
                     sparkState.value = history.toList()
                 }
                 SpeedReading.Unsupported -> {

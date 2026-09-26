@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.service.quicksettings.TileService
 import android.util.Log
+import app.netstrip.core.SAMPLE_PERIOD_MILLIS
 import app.netstrip.core.SpeedReading
 import app.netstrip.core.SpeedSampler
 import app.netstrip.core.labelFor
@@ -111,7 +112,7 @@ class SpeedStatusService : Service() {
             } catch (error: Exception) {
                 Log.w(TAG, "Speed sample failed", error)
             }
-            delay(1_000)
+            delay(SAMPLE_PERIOD_MILLIS)
         }
     }
 

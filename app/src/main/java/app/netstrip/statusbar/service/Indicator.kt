@@ -39,7 +39,11 @@ object Indicator {
             .setPersisted(true)
             .setPeriodic(15 * 60 * 1000L)
             .build()
-        app.getSystemService(JobScheduler::class.java).schedule(job)
+        try {
+            app.getSystemService(JobScheduler::class.java).schedule(job)
+        } catch (error: Exception) {
+            Log.w(TAG, "Could not schedule the restart check", error)
+        }
     }
 
     fun scheduleBootRetries(context: Context) {

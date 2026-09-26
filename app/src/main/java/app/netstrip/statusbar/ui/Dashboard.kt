@@ -334,6 +334,7 @@ private fun TrafficGraph(
             .border(1.dp, NetLine, RoundedCornerShape(18.dp))
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
+        if (size.width < 1f || size.height < 1f) return@Canvas
         val tickFractions = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
         val yLabels = tickFractions.map { axisLabel((axisMax * it).toDouble()) }
         val yGutter = yLabels.maxOf { measurer.measure(it, labelStyle).size.width }.toFloat() + 10.dp.toPx()
@@ -395,11 +396,12 @@ private fun TrafficGraph(
                 else -> axisSeconds.format(age / 1_000L)
             }
             val layout = measurer.measure(label, labelStyle)
+            val maxLeft = (size.width - layout.size.width).coerceAtLeast(0f)
             val left = when (mark) {
                 0 -> x
                 xDivisions -> x - layout.size.width
                 else -> x - layout.size.width / 2f
-            }.coerceIn(0f, size.width - layout.size.width)
+            }.coerceIn(0f, maxLeft)
             drawText(layout, color = NetMuted, topLeft = Offset(left, plotBottom + 7.dp.toPx()))
         }
 

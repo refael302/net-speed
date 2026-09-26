@@ -43,7 +43,6 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     private val batteryOk = MutableStateFlow(true)
     val batteryUnrestricted: StateFlow<Boolean> = batteryOk
-    private var askedBattery = false
 
     private val note = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = note
@@ -73,10 +72,6 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         notifications.value = app.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
         val power = app.getSystemService(PowerManager::class.java)
         batteryOk.value = power.isIgnoringBatteryOptimizations(app.packageName)
-        if (!batteryOk.value && !askedBattery) {
-            askedBattery = true
-            allowUnrestrictedBattery()
-        }
         if (prefs.enabled.value && notifications.value && !LiveSpeed.serviceRunning.value) {
             setStatusBar(true)
         }
@@ -97,7 +92,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         try {
             app.startActivity(request)
         } catch (_: Exception) {
-            app.startActivity(fallback)
+            try {
+                app.startActivity(fallback)
+            } catch (_: Exception) {
+            }
         }
     }
 

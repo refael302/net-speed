@@ -2,10 +2,9 @@ package app.netstrip.statusbar.ui
 
 import android.app.Application
 import android.app.NotificationManager
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
-import android.os.PowerManager
+import android.os.Build
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,9 +12,10 @@ import app.netstrip.core.SpeedSampler
 import app.netstrip.statusbar.NetStripApp
 import app.netstrip.statusbar.R
 import app.netstrip.statusbar.data.DeviceCounters
-import app.netstrip.statusbar.data.IconMode
 import app.netstrip.statusbar.data.LiveSpeed
 import app.netstrip.statusbar.service.Indicator
+import app.netstrip.statusbar.update.AppUpdate
+import app.netstrip.statusbar.update.UpdateState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,25 +23,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = (app as NetStripApp).prefs
     private var previewJob: Job? = null
 
-    val reading = LiveSpeed.reading
     val spark = LiveSpeed.spark
     val statusBarOn = prefs.enabled
-    val iconMode = prefs.iconMode
-    val startOnBoot = prefs.startOnBoot
 
     private val notifications = MutableStateFlow(true)
     val notificationsAllowed: StateFlow<Boolean> = notifications
 
-    private val battery = MutableStateFlow(true)
-    val batteryUnrestricted: StateFlow<Boolean> = battery
-
     private val note = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = note
+
+    private val updates = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateState: StateFlow<UpdateState> = updates
 
     init {
         refreshSystemState()
@@ -62,10 +60,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     fun refreshSystemState() {
         val app = getApplication<Application>()
-        val manager = app.getSystemService(NotificationManager::class.java)
-        notifications.value = manager.areNotificationsEnabled()
-        val power = app.getSystemService(PowerManager::class.java)
-        battery.value = power.isIgnoringBatteryOptimizations(app.packageName)
+        notifications.value = app.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
         if (prefs.enabled.value && notifications.value && !LiveSpeed.serviceRunning.value) {
             setStatusBar(true)
         }
@@ -83,36 +78,49 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun setIconMode(mode: IconMode) {
-        prefs.setIconMode(mode)
-    }
-
-    fun setStartOnBoot(enabled: Boolean) {
-        prefs.setStartOnBoot(enabled)
-    }
-
     fun openNotificationSettings() {
         val app = getApplication<Application>()
-        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-            .putExtra(Settings.EXTRA_APP_PACKAGE, app.packageName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        app.startActivity(intent)
+        app.startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, app.packageName)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
     }
 
-    fun openBatterySettings() {
+    fun checkForUpdate() {
+        if (updates.value is UpdateState.Checking || updates.value is UpdateState.Downloading) return
+        updates.value = UpdateState.Checking
+        viewModelScope.launch(Dispatchers.IO) {
+            updates.value = try {
+                val manifest = AppUpdate.fetchManifest()
+                val installed = AppUpdate.installedVersionCode(getApplication())
+                if (manifest.versionCode > installed) UpdateState.Available(manifest) else UpdateState.UpToDate
+            } catch (_: Exception) {
+                UpdateState.Failed
+            }
+        }
+    }
+
+    fun installUpdate() {
+        val manifest = (updates.value as? UpdateState.Available)?.manifest ?: return
         val app = getApplication<Application>()
-        val packageUri = Uri.parse("package:${app.packageName}")
-        val intents = listOf(
-            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri),
-            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri),
-        )
-        for (intent in intents) {
-            try {
-                app.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                return
-            } catch (_: ActivityNotFoundException) {
-            } catch (_: SecurityException) {
+        if (Build.VERSION.SDK_INT >= 26 && !app.packageManager.canRequestPackageInstalls()) {
+            app.startActivity(
+                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${app.packageName}"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            return
+        }
+        updates.value = UpdateState.Downloading
+        viewModelScope.launch(Dispatchers.IO) {
+            updates.value = try {
+                val apk = AppUpdate.downloadApk(app, manifest.apkUrl)
+                withContext(Dispatchers.Main) {
+                    app.startActivity(AppUpdate.installIntent(app, apk))
+                }
+                UpdateState.Available(manifest)
+            } catch (_: Exception) {
+                UpdateState.Failed
             }
         }
     }

@@ -7,27 +7,16 @@ import org.junit.Test
 
 class SpeedMathTest {
     @Test
-    fun wifiDropsMobileCounters() {
-        val pair = selectBytes(
-            totalRx = 10_000,
-            totalTx = 8_000,
-            mobileRx = 400,
-            mobileTx = 100,
-            transport = Transport.WIFI,
+    fun wifiAndCellularBothCountTheWholeDevice() {
+        val expected = BytePair(10_000, 8_000)
+        assertEquals(
+            expected,
+            selectBytes(10_000, 8_000, 400, 100, Transport.WIFI),
         )
-        assertEquals(BytePair(9_600, 7_900), pair)
-    }
-
-    @Test
-    fun cellularUsesOnlyMobileCounters() {
-        val pair = selectBytes(
-            totalRx = 10_000,
-            totalTx = 8_000,
-            mobileRx = 400,
-            mobileTx = 100,
-            transport = Transport.CELLULAR,
+        assertEquals(
+            expected,
+            selectBytes(10_000, 8_000, 400, 100, Transport.CELLULAR),
         )
-        assertEquals(BytePair(400, 100), pair)
     }
 
     @Test
@@ -70,14 +59,13 @@ class SpeedMathTest {
     }
 
     @Test
-    fun switchingNetworkSkipsOneIntervalThenMeasuresTheNewOne() {
+    fun switchingNetworkKeepsCountingTheSameTraffic() {
         val sampler = SpeedSampler()
         sampler.onSnapshot(BytePair(0, 0), Transport.WIFI, 0L)
-        assertNull(sampler.onSnapshot(BytePair(100, 0), Transport.CELLULAR, 1_000_000_000L))
         val reading = sampler.onSnapshot(
-            BytePair(600, 0),
+            BytePair(500, 0),
             Transport.CELLULAR,
-            2_000_000_000L,
+            1_000_000_000L,
         )
         assertTrue(reading is SpeedReading.Live)
         assertEquals(500.0, (reading as SpeedReading.Live).downBytesPerSec, 0.001)

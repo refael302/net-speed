@@ -33,6 +33,13 @@
     <string name="start_failed">The icon did not start. Allow notifications and try the switch again.</string>
     <string name="unsupported">This phone is not reporting traffic counters, so the speed cannot be calculated.</string>
     <string name="privacy">Measurement stays on the phone. This app has no internet permission and does not send anything out.</string>
+    <string name="all_traffic">All traffic</string>
+    <string name="check_update">Check for update</string>
+    <string name="checking_update">Checking…</string>
+    <string name="up_to_date">This is the latest version</string>
+    <string name="check_failed">Could not check for an update</string>
+    <string name="update_app">Update</string>
+    <string name="downloading_update">Downloading the update…</string>
     <string name="stop">Stop</string>
     <string name="channel_name">Status bar icon</string>
     <string name="channel_desc">Shows download and upload speed. Leave this notification on so the icon can stay in the status bar.</string>

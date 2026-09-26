@@ -14,8 +14,9 @@ android {
         applicationId = "app.netstrip.statusbar"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
+        buildConfigField("String", "UPDATE_MANIFEST_URL", "\"https://litter.catbox.moe/8llct6.json\"")
     }
 
     buildTypes {
@@ -31,6 +32,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -33,6 +33,13 @@
     <string name="start_failed">הסמל לא עלה. אשרו התראות ונסו את המתג שוב.</string>
     <string name="unsupported">המכשיר לא מדווח מוני תעבורה, אז אי אפשר לחשב מהירות.</string>
     <string name="privacy">המדידה נשארת בטלפון. לאפליקציה אין הרשאת אינטרנט והיא לא שולחת כלום החוצה.</string>
+    <string name="all_traffic">כל התעבורה</string>
+    <string name="check_update">בדוק עדכון גרסה</string>
+    <string name="checking_update">בודק…</string>
+    <string name="up_to_date">הגרסה העדכנית מותקנת</string>
+    <string name="check_failed">לא הצלחתי לבדוק אם יש עדכון</string>
+    <string name="update_app">עדכן</string>
+    <string name="downloading_update">מוריד את העדכון…</string>
     <string name="stop">עצירה</string>
     <string name="channel_name">סמל בשורת המצב</string>
     <string name="channel_desc">מציג את מהירות ההורדה וההעלאה. השאירו את ההתראה פעילה כדי שהסמל יישאר למעלה.</string>

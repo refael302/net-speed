@@ -16,12 +16,12 @@ import android.service.quicksettings.TileService
 import android.util.Log
 import app.netstrip.core.SpeedReading
 import app.netstrip.core.SpeedSampler
-import app.netstrip.core.Transport
 import app.netstrip.core.labelFor
 import app.netstrip.statusbar.MainActivity
 import app.netstrip.statusbar.NetStripApp
 import app.netstrip.statusbar.R
 import app.netstrip.statusbar.data.DeviceCounters
+import app.netstrip.statusbar.data.IconMode
 import app.netstrip.statusbar.data.LiveSpeed
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +37,6 @@ class SpeedStatusService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var loop: Job? = null
     private val icons = SpeedIconRenderer()
-    private val prefs by lazy { (application as NetStripApp).prefs }
 
     private val openApp: PendingIntent by lazy {
         PendingIntent.getActivity(
@@ -61,7 +60,7 @@ class SpeedStatusService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            prefs.setEnabled(false)
+            (application as NetStripApp).prefs.setEnabled(false)
             LiveSpeed.setServiceRunning(false)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -170,10 +169,10 @@ class SpeedStatusService : Service() {
             is SpeedReading.Live -> {
                 val down = labelFor(reading.downBytesPerSec)
                 val up = labelFor(reading.upBytesPerSec)
-                val bitmap = icons.render(down.icon, up.icon, prefs.iconMode.value)
+                val bitmap = icons.render(down.icon, up.icon, IconMode.BOTH)
                 builder.setSmallIcon(Icon.createWithBitmap(bitmap))
                 builder.setContentText(speedLine(down.value, down.unit, up.value, up.unit))
-                builder.setSubText(transportName(reading.transport))
+                builder.setSubText(getString(R.string.all_traffic))
             }
         }
         return builder.build()
@@ -181,17 +180,6 @@ class SpeedStatusService : Service() {
 
     private fun speedLine(downValue: String, downUnit: String, upValue: String, upUnit: String): String {
         return "\u200E↓ $downValue $downUnit    ↑ $upValue $upUnit"
-    }
-
-    private fun transportName(transport: Transport): String {
-        val id = when (transport) {
-            Transport.WIFI -> R.string.transport_wifi
-            Transport.CELLULAR -> R.string.transport_cellular
-            Transport.ETHERNET -> R.string.transport_ethernet
-            Transport.OTHER -> R.string.transport_other
-            Transport.NONE -> R.string.transport_none
-        }
-        return getString(id)
     }
 
     private fun refreshTile() {

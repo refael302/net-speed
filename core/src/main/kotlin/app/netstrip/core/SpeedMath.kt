@@ -26,10 +26,10 @@ sealed interface SpeedReading {
 }
 
 /**
- * Picks the byte counters that belong to the network that is up right now.
- * Mobile counters are the cellular interface. Everything else in the total
- * (Wi-Fi, ethernet) is total minus mobile.
+ * All bytes that entered or left the device, on Wi-Fi, cellular, and every other interface.
+ * The per-network counters are ignored so a handoff does not drop traffic.
  */
+@Suppress("UNUSED_PARAMETER")
 fun selectBytes(
     totalRx: Long,
     totalTx: Long,
@@ -38,17 +38,7 @@ fun selectBytes(
     transport: Transport,
 ): BytePair? {
     if (totalRx < 0L || totalTx < 0L) return null
-    return when (transport) {
-        Transport.CELLULAR -> {
-            if (mobileRx < 0L || mobileTx < 0L) null else BytePair(mobileRx, mobileTx)
-        }
-        Transport.WIFI, Transport.ETHERNET -> {
-            val rx = if (mobileRx >= 0L) (totalRx - mobileRx).coerceAtLeast(0L) else totalRx
-            val tx = if (mobileTx >= 0L) (totalTx - mobileTx).coerceAtLeast(0L) else totalTx
-            BytePair(rx, tx)
-        }
-        Transport.NONE, Transport.OTHER -> BytePair(totalRx, totalTx)
-    }
+    return BytePair(totalRx, totalTx)
 }
 
 private data class Sample(
@@ -70,7 +60,7 @@ class SpeedSampler {
             return SpeedReading.Unsupported
         }
         val prev = previous
-        if (prev == null || prev.transport != transport) {
+        if (prev == null) {
             previous = Sample(bytes, transport, nanos)
             return null
         }

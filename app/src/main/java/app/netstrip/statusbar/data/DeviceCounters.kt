@@ -8,8 +8,14 @@ import app.netstrip.core.BytePair
 import app.netstrip.core.Transport
 import app.netstrip.core.selectBytes
 
+data class CounterSnapshot(
+    val total: BytePair?,
+    val mobile: BytePair?,
+    val transport: Transport,
+)
+
 object DeviceCounters {
-    fun read(context: Context): Pair<BytePair?, Transport> {
+    fun read(context: Context): CounterSnapshot {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         val capabilities = connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities)
         val transport = when {
@@ -19,13 +25,16 @@ object DeviceCounters {
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> Transport.CELLULAR
             else -> Transport.OTHER
         }
-        val bytes = selectBytes(
+        val mobileRx = TrafficStats.getMobileRxBytes()
+        val mobileTx = TrafficStats.getMobileTxBytes()
+        val total = selectBytes(
             totalRx = TrafficStats.getTotalRxBytes(),
             totalTx = TrafficStats.getTotalTxBytes(),
-            mobileRx = TrafficStats.getMobileRxBytes(),
-            mobileTx = TrafficStats.getMobileTxBytes(),
+            mobileRx = mobileRx,
+            mobileTx = mobileTx,
             transport = transport,
         )
-        return bytes to transport
+        val mobile = if (mobileRx >= 0L && mobileTx >= 0L) BytePair(mobileRx, mobileTx) else null
+        return CounterSnapshot(total, mobile, transport)
     }
 }

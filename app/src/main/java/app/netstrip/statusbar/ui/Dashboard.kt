@@ -61,6 +61,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.netstrip.core.ChartSample
 import app.netstrip.core.GraphSpan
+import app.netstrip.core.UsageSpan
 import app.netstrip.core.axisLabel
 import app.netstrip.core.chartSeries
 import app.netstrip.core.niceAxisMax
@@ -73,6 +74,8 @@ import app.netstrip.statusbar.update.UpdateState
 fun Dashboard(viewModel: DashboardViewModel) {
     val spark by viewModel.spark.collectAsStateWithLifecycle()
     val graphSpan by viewModel.graphSpan.collectAsStateWithLifecycle()
+    val usage by viewModel.usage.collectAsStateWithLifecycle()
+    val usageSpan by viewModel.usageSpan.collectAsStateWithLifecycle()
     val statusBarOn by viewModel.statusBarOn.collectAsStateWithLifecycle()
     val notificationsAllowed by viewModel.notificationsAllowed.collectAsStateWithLifecycle()
     val batteryUnrestricted by viewModel.batteryUnrestricted.collectAsStateWithLifecycle()
@@ -189,6 +192,48 @@ fun Dashboard(viewModel: DashboardViewModel) {
                     .height(280.dp),
             )
         }
+
+        Spacer(Modifier.height(28.dp))
+        Text(
+            stringResource(R.string.usage_title),
+            color = NetText,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(R.string.usage_hint),
+            color = NetMuted,
+            fontSize = 13.sp,
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SpanButton(stringResource(R.string.range_minute), usageSpan == UsageSpan.MINUTE, Modifier.weight(1f)) {
+                viewModel.selectUsageSpan(UsageSpan.MINUTE)
+            }
+            SpanButton(stringResource(R.string.range_hour), usageSpan == UsageSpan.HOUR, Modifier.weight(1f)) {
+                viewModel.selectUsageSpan(UsageSpan.HOUR)
+            }
+            SpanButton(stringResource(R.string.range_day), usageSpan == UsageSpan.DAY, Modifier.weight(1f)) {
+                viewModel.selectUsageSpan(UsageSpan.DAY)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            LegendDot(NetWifi, stringResource(R.string.transport_wifi))
+            LegendDot(NetCell, stringResource(R.string.transport_cellular))
+        }
+        Spacer(Modifier.height(10.dp))
+        UsageBars(
+            snapshot = usage,
+            span = usageSpan,
+            tapLabel = stringResource(R.string.usage_tap),
+            selectedPattern = stringResource(R.string.usage_selected),
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Spacer(Modifier.height(24.dp))
         Text(

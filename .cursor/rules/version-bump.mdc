@@ -1,0 +1,18 @@
+---
+description: Always bump the app version after a code change
+alwaysApply: true
+---
+
+# העלאת גרסה אחרי שינוי בקוד
+
+כל שינוי בקוד שנכנס לאפליקציה מחייב גרסה חדשה באותו שינוי. זה כולל `app/src`, `core/src/main`, משאבים, המניפסט ותלויות.
+
+בלי גרסה חדשה הטלפון משווה את המספר המותקן ל-`dist/version.json` ומדווח שאין עדכון.
+
+לפני סיום העבודה:
+
+1. ב-`app/build.gradle.kts` להעלות את `versionCode` באחד, ולהעלות את `versionName`.
+2. ב-`dist/version.json` לרשום את אותו `versionCode` ואותו `versionName`, ולכתוב ב-`notes` בעברית מה השתנה.
+3. לבנות APK חתום ב-`app/debug.keystore` ולהחליף את `dist/netstrip.apk`. המספר שבתוך ה-APK חייב להיות זהה למספר ב-`version.json`.
+
+שינוי שהוא רק כלל, תיעוד או בדיקות לא משנה את האפליקציה המותקנת, ולא דורש העלאת גרסה.

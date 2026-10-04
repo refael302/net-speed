@@ -17,6 +17,7 @@ import android.util.Log
 import app.netstrip.core.SAMPLE_PERIOD_MILLIS
 import app.netstrip.core.SpeedReading
 import app.netstrip.core.SpeedSampler
+import app.netstrip.core.UsageSampler
 import app.netstrip.core.labelFor
 import app.netstrip.statusbar.MainActivity
 import app.netstrip.statusbar.NetStripApp
@@ -24,6 +25,7 @@ import app.netstrip.statusbar.R
 import app.netstrip.statusbar.data.DeviceCounters
 import app.netstrip.statusbar.data.IconMode
 import app.netstrip.statusbar.data.LiveSpeed
+import app.netstrip.statusbar.data.UsageHistory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,11 +94,19 @@ class SpeedStatusService : Service() {
 
     private suspend fun sampleLoop() {
         val sampler = SpeedSampler()
+        val usageSampler = UsageSampler()
         while (scope.isActive) {
             val screenOn = interactive()
             try {
-                val (bytes, transport) = DeviceCounters.read(this)
-                val reading = sampler.onSnapshot(bytes, transport, System.nanoTime())
+                val counters = DeviceCounters.read(this)
+                UsageHistory.onCounters(
+                    usageSampler,
+                    counters.total,
+                    counters.mobile,
+                    counters.transport,
+                    System.currentTimeMillis(),
+                )
+                val reading = sampler.onSnapshot(counters.total, counters.transport, System.nanoTime())
                 if (reading != null) {
                     LiveSpeed.publish(reading)
                     if (screenOn) {

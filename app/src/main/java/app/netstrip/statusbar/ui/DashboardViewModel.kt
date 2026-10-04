@@ -12,10 +12,13 @@ import androidx.lifecycle.viewModelScope
 import app.netstrip.core.GraphSpan
 import app.netstrip.core.SAMPLE_PERIOD_MILLIS
 import app.netstrip.core.SpeedSampler
+import app.netstrip.core.UsageSampler
+import app.netstrip.core.UsageSpan
 import app.netstrip.statusbar.NetStripApp
 import app.netstrip.statusbar.R
 import app.netstrip.statusbar.data.DeviceCounters
 import app.netstrip.statusbar.data.LiveSpeed
+import app.netstrip.statusbar.data.UsageHistory
 import app.netstrip.statusbar.service.Indicator
 import app.netstrip.statusbar.update.AppUpdate
 import app.netstrip.statusbar.update.UpdateState
@@ -37,6 +40,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     private val spanState = MutableStateFlow(GraphSpan.MINUTE)
     val graphSpan: StateFlow<GraphSpan> = spanState
+
+    private val usageSpanState = MutableStateFlow(UsageSpan.MINUTE)
+    val usageSpan: StateFlow<UsageSpan> = usageSpanState
+    val usage = UsageHistory.state
 
     private val notifications = MutableStateFlow(true)
     val notificationsAllowed: StateFlow<Boolean> = notifications
@@ -101,6 +108,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     fun selectSpan(span: GraphSpan) {
         spanState.value = span
+    }
+
+    fun selectUsageSpan(span: UsageSpan) {
+        usageSpanState.value = span
     }
 
     fun setStatusBar(enabled: Boolean) {
@@ -170,10 +181,18 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     private fun startPreview() {
         if (previewJob?.isActive == true) return
         val sampler = SpeedSampler()
+        val usageSampler = UsageSampler()
         previewJob = viewModelScope.launch(Dispatchers.Default) {
             while (isActive && !LiveSpeed.serviceRunning.value) {
-                val (bytes, transport) = DeviceCounters.read(getApplication())
-                val reading = sampler.onSnapshot(bytes, transport, System.nanoTime())
+                val counters = DeviceCounters.read(getApplication())
+                UsageHistory.onCounters(
+                    usageSampler,
+                    counters.total,
+                    counters.mobile,
+                    counters.transport,
+                    System.currentTimeMillis(),
+                )
+                val reading = sampler.onSnapshot(counters.total, counters.transport, System.nanoTime())
                 if (!LiveSpeed.serviceRunning.value && reading != null) {
                     LiveSpeed.publish(reading)
                 }

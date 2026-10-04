@@ -14,13 +14,22 @@ android {
         applicationId = "app.netstrip.statusbar"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.6.1"
+        versionCode = 9
+        versionName = "1.7.0"
         buildConfigField(
             "String",
             "UPDATE_MANIFEST_URL",
             "\"https://raw.githubusercontent.com/refael302/net-speed/main/dist/version.json\"",
         )
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {

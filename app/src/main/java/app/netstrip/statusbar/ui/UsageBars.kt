@@ -3,7 +3,8 @@ package app.netstrip.statusbar.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,7 @@ import app.netstrip.core.usageSegmentHeights
 import app.netstrip.core.usageTimeLabel
 import app.netstrip.core.volumeLabel
 import java.time.ZoneId
+import kotlin.math.abs
 import kotlin.math.max
 
 private val TooltipLane = 64.dp
@@ -162,6 +164,7 @@ private fun UsagePlot(
     val density = LocalDensity.current
     val slotPx = with(density) { SlotWidth.toPx() }
     val barsState by rememberUpdatedState(bars)
+    val selectBar by rememberUpdatedState(onSelect)
     var viewportWidth by remember { mutableIntStateOf(0) }
     val scrollX = scroll.value
 
@@ -179,18 +182,43 @@ private fun UsagePlot(
     Box(
         modifier
             .onSizeChanged { viewportWidth = it.width }
-            .horizontalScroll(scroll),
+            // Touch scrolling is handled below. The stock scroller cancels a tap whenever
+            // the finger moves a few pixels, and the page's vertical scroll does the same.
+            .horizontalScroll(scroll, enabled = false),
     ) {
         Canvas(
             Modifier
                 .width(SlotWidth * max(bars.size, 1))
                 .height(ChartHeight)
                 .pointerInput(slotPx) {
-                    detectTapGestures { offset ->
-                        if (offset.y < TooltipLane.toPx()) return@detectTapGestures
-                        val index = (offset.x / slotPx).toInt()
-                        val current = barsState
-                        if (index in current.indices) onSelect(current[index].startMillis)
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val pointerId = down.id
+                        val start = down.position
+                        var pastSlop = false
+                        var scrollHorizontally = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+                            if (!change.pressed) {
+                                if (!pastSlop) {
+                                    val index = (start.x / slotPx).toInt()
+                                    val current = barsState
+                                    if (index in current.indices) selectBar(current[index].startMillis)
+                                }
+                                break
+                            }
+                            if (change.isConsumed && !scrollHorizontally) break
+                            val delta = change.position - start
+                            if (!pastSlop && delta.getDistance() > viewConfiguration.touchSlop) {
+                                pastSlop = true
+                                scrollHorizontally = abs(delta.x) > abs(delta.y)
+                            }
+                            if (scrollHorizontally) {
+                                scroll.dispatchRawDelta(change.previousPosition.x - change.position.x)
+                                change.consume()
+                            }
+                        }
                     }
                 },
         ) {

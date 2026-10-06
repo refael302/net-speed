@@ -1,6 +1,6 @@
 {
-  "versionCode": 9,
-  "versionName": "1.7.0",
+  "versionCode": 10,
+  "versionName": "1.7.1",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "גרף עמודות של כמות השימוש: כמה מידע עבר בפועל.\nכל עמודה יכולה לייצג דקה, שעה או יום.\nלחיצה על עמודה מציגה את השעה, את הכמות, ואת החלוקה בין Wi-Fi לסלולר."
+  "notes": "תוקנה לחיצה על עמודות גרף השימוש, שלא תמיד נרשמה."
 }

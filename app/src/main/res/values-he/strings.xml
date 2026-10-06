@@ -11,8 +11,10 @@
     <string name="range_hour">שעה</string>
     <string name="range_day">יום</string>
     <string name="usage_title">כמות שימוש</string>
-    <string name="usage_hint">כמה מידע עבר בפועל, הורדה והעלאה יחד. מה שלא עבר בסלולר נספר כ-Wi-Fi. לחיצה על עמודה מציגה את השעה, את הכמות, ואת שני החלקים.</string>
+    <string name="usage_hint">כמה מידע עבר בפועל, הורדה והעלאה יחד. מה שלא עבר בסלולר נספר כ-Wi-Fi. לחיצה על עמודה מציגה את השעה, את הכמות, ואת שני החלקים. החצים עוברים בין שעות, ימים או חודשים.</string>
     <string name="usage_tap">לחצו על עמודה</string>
+    <string name="usage_previous">מסך קודם</string>
+    <string name="usage_next">מסך הבא</string>
     <string name="usage_selected">%1$s, %2$s, Wi-Fi %3$s, סלולרי %4$s</string>
     <string name="axis_seconds">%1$d שנ׳</string>
     <string name="axis_minutes">%1$d דק׳</string>

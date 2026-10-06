@@ -232,6 +232,8 @@ fun Dashboard(viewModel: DashboardViewModel) {
             span = usageSpan,
             tapLabel = stringResource(R.string.usage_tap),
             selectedPattern = stringResource(R.string.usage_selected),
+            previousLabel = stringResource(R.string.usage_previous),
+            nextLabel = stringResource(R.string.usage_next),
             modifier = Modifier.fillMaxWidth(),
         )
 

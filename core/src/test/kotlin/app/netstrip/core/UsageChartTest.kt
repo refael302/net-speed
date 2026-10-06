@@ -11,20 +11,64 @@ class UsageChartTest {
     private val jerusalem = ZoneId.of("Asia/Jerusalem")
 
     @Test
-    fun emptyWindowIsZeroBars() {
+    fun minuteScreenIsTheClockHour() {
         val now = instant(2026, 10, 4, 15, 7)
         val bars = usageBars(emptyList(), UsageSpan.MINUTE, now, jerusalem)
         assertEquals(60, bars.size)
         assertTrue(bars.all { it.totalBytes == 0L })
-        assertEquals(instant(2026, 10, 4, 15, 7), bars.last().startMillis)
-        assertEquals(instant(2026, 10, 4, 14, 8), bars.first().startMillis)
+        assertEquals(instant(2026, 10, 4, 15, 0), bars.first().startMillis)
+        assertEquals(instant(2026, 10, 4, 15, 59), bars.last().startMillis)
     }
 
     @Test
-    fun longerSpansKeepAReadableBarCount() {
+    fun hourScreenStartsAtMidnight() {
         val now = instant(2026, 10, 4, 15, 0)
-        assertEquals(24, usageBars(emptyList(), UsageSpan.HOUR, now, jerusalem).size)
-        assertEquals(14, usageBars(emptyList(), UsageSpan.DAY, now, jerusalem).size)
+        val bars = usageBars(emptyList(), UsageSpan.HOUR, now, jerusalem)
+        assertEquals(24, bars.size)
+        assertEquals(instant(2026, 10, 4, 0, 0), bars.first().startMillis)
+        assertEquals(instant(2026, 10, 4, 23, 0), bars.last().startMillis)
+    }
+
+    @Test
+    fun dayScreenIsTheCalendarMonth() {
+        val now = instant(2026, 10, 4, 23, 50)
+        val bars = usageBars(emptyList(), UsageSpan.DAY, now, jerusalem)
+        assertEquals(31, bars.size)
+        assertEquals(instant(2026, 10, 1, 0, 0), bars.first().startMillis)
+        assertEquals(instant(2026, 10, 31, 0, 0), bars.last().startMillis)
+    }
+
+    @Test
+    fun arrowsMoveBetweenKeptScreens() {
+        val now = instant(2026, 10, 4, 15, 7)
+        val previousHour = usageBars(emptyList(), UsageSpan.MINUTE, now, jerusalem, pageBack = 1)
+        assertEquals(instant(2026, 10, 4, 14, 0), previousHour.first().startMillis)
+        assertEquals(instant(2026, 10, 4, 14, 59), previousHour.last().startMillis)
+
+        val yesterday = usageBars(emptyList(), UsageSpan.HOUR, now, jerusalem, pageBack = 1)
+        assertEquals(instant(2026, 10, 3, 0, 0), yesterday.first().startMillis)
+
+        val september = usageBars(emptyList(), UsageSpan.DAY, now, jerusalem, pageBack = 1)
+        assertEquals(30, september.size)
+        assertEquals(instant(2026, 9, 1, 0, 0), september.first().startMillis)
+        assertEquals(instant(2026, 9, 30, 0, 0), september.last().startMillis)
+
+        val oldestMinutes = usageBars(emptyList(), UsageSpan.MINUTE, now, jerusalem, pageBack = 50)
+        assertEquals(usagePageStart(UsageSpan.MINUTE, now, 23, jerusalem), oldestMinutes.first().startMillis)
+        assertEquals(24, usagePageCount(UsageSpan.MINUTE))
+        assertEquals(7, usagePageCount(UsageSpan.HOUR))
+        assertEquals(2, usagePageCount(UsageSpan.DAY))
+    }
+
+    @Test
+    fun pinnedScreenFollowsTheClockUntilItFallsOut() {
+        val now = instant(2026, 10, 4, 15, 7)
+        val pinned = usagePageStart(UsageSpan.MINUTE, now, 1, jerusalem)
+        assertEquals(1, usagePageBack(UsageSpan.MINUTE, now, pinned, jerusalem))
+        val nextHour = instant(2026, 10, 4, 16, 0)
+        assertEquals(2, usagePageBack(UsageSpan.MINUTE, nextHour, pinned, jerusalem))
+        val tooOld = instant(2026, 10, 5, 16, 0)
+        assertNull(usagePageBack(UsageSpan.MINUTE, tooOld, pinned, jerusalem))
     }
 
     @Test
@@ -34,8 +78,8 @@ class UsageChartTest {
         var store = recordAll(UsageSnapshot(), wifiBytes = 100, cellularBytes = 40, atMillis = first, jerusalem)
         store = recordAll(store, wifiBytes = 25, cellularBytes = 5, atMillis = second, jerusalem)
         val bars = usageBars(store.minutes, UsageSpan.MINUTE, second, jerusalem)
-        assertEquals(125L, bars.last().wifiBytes)
-        assertEquals(45L, bars.last().cellularBytes)
+        assertEquals(125L, bars[7].wifiBytes)
+        assertEquals(45L, bars[7].cellularBytes)
     }
 
     @Test
@@ -46,45 +90,67 @@ class UsageChartTest {
         store = recordAll(store, 50, 5, at16, jerusalem)
         val hours = usageBars(store.hours, UsageSpan.HOUR, at16, jerusalem)
         val days = usageBars(store.days, UsageSpan.DAY, at16, jerusalem)
-        assertEquals(150L, hours.last().wifiBytes)
-        assertEquals(15L, hours.last().cellularBytes)
-        assertEquals(165L, days.last().totalBytes)
+        assertEquals(150L, hours[15].wifiBytes)
+        assertEquals(15L, hours[15].cellularBytes)
+        assertEquals(165L, days[3].totalBytes)
         val minutes = usageBars(store.minutes, UsageSpan.MINUTE, at16, jerusalem)
-        assertEquals(50L, minutes.last().wifiBytes)
-        assertEquals(100L, minutes[minutes.lastIndex - 33].wifiBytes)
+        assertEquals(50L, minutes[40].wifiBytes)
+        assertEquals(100L, minutes[7].wifiBytes)
     }
 
     @Test
-    fun bucketsOutsideTheWindowAreDropped() {
-        val old = instant(2026, 8, 1, 12, 0)
-        val now = instant(2026, 10, 4, 12, 0)
-        val store = recordAll(
-            recordAll(UsageSnapshot(), 80, 20, old, jerusalem),
+    fun retentionKeepsADayOfMinutesAWeekOfHoursAndAMonthOfDays() {
+        val now = instant(2026, 10, 4, 15, 7)
+        val keptMinute = instant(2026, 10, 3, 16, 5)
+        val droppedMinute = instant(2026, 10, 3, 15, 50)
+        val keptHour = instant(2026, 9, 28, 3, 0)
+        val droppedHour = instant(2026, 9, 27, 23, 0)
+        val keptDay = instant(2026, 9, 15, 12, 0)
+        val droppedDay = instant(2026, 8, 1, 12, 0)
+        val futureDay = instant(2026, 11, 1, 0, 0)
+        var store = recordAll(UsageSnapshot(), 16, 16, droppedDay, jerusalem)
+        store = recordAll(store, 80, 20, keptDay, jerusalem)
+        store = recordAll(store, 8, 8, droppedHour, jerusalem)
+        store = recordAll(store, 4, 4, keptHour, jerusalem)
+        store = recordAll(store, 2, 2, droppedMinute, jerusalem)
+        store = recordAll(store, 1, 1, keptMinute, jerusalem)
+        store = recordAll(
+            store.copy(days = store.days + UsageBucket(futureDay, 9, 9)),
             5,
             1,
             now,
             jerusalem,
         )
-        assertTrue(store.days.none { it.startMillis == alignUsageStart(old, UsageSpan.DAY, jerusalem) })
-        assertEquals(6L, usageBars(store.days, UsageSpan.DAY, now, jerusalem).last().totalBytes)
-    }
 
-    @Test
-    fun dayBarsAlignToLocalMidnight() {
-        val now = instant(2026, 10, 4, 23, 50)
-        val bars = usageBars(emptyList(), UsageSpan.DAY, now, jerusalem)
-        assertEquals(instant(2026, 10, 4, 0, 0), bars.last().startMillis)
-        assertEquals(instant(2026, 9, 21, 0, 0), bars.first().startMillis)
+        assertEquals(1L, store.minutes.single { it.startMillis == keptMinute }.wifiBytes)
+        assertTrue(store.minutes.none { it.startMillis == droppedMinute })
+        assertTrue(store.hours.any { it.startMillis == alignUsageStart(keptHour, UsageSpan.HOUR, jerusalem) })
+        assertTrue(store.hours.none { it.startMillis == alignUsageStart(droppedHour, UsageSpan.HOUR, jerusalem) })
+        assertTrue(store.days.any { it.startMillis == alignUsageStart(keptDay, UsageSpan.DAY, jerusalem) })
+        assertTrue(store.days.none { it.startMillis == alignUsageStart(droppedDay, UsageSpan.DAY, jerusalem) })
+        assertTrue(store.days.none { it.startMillis == futureDay })
+
+        val september = usageBars(store.days, UsageSpan.DAY, now, jerusalem, pageBack = 1)
+        assertEquals(100L, september[14].totalBytes)
+        assertEquals(6L, usageBars(store.days, UsageSpan.DAY, now, jerusalem)[3].totalBytes)
     }
 
     @Test
     fun hourStepsStayOrderedAcrossDaylightSaving() {
         val zone = ZoneId.of("America/New_York")
         val spring = ZonedDateTime.of(2026, 3, 8, 5, 15, 0, 0, zone).toInstant().toEpochMilli()
-        val bars = usageBars(emptyList(), UsageSpan.HOUR, spring, zone)
-        val starts = bars.map { it.startMillis }
-        assertEquals(starts.distinct().sorted(), starts)
-        assertTrue(starts.zipWithNext().all { (left, right) -> right > left })
+        val springBars = usageBars(emptyList(), UsageSpan.HOUR, spring, zone)
+        val springStarts = springBars.map { it.startMillis }
+        assertEquals(23, springBars.size)
+        assertEquals(springStarts.distinct().sorted(), springStarts)
+        assertTrue(springStarts.zipWithNext().all { (left, right) -> right > left })
+
+        val fall = ZonedDateTime.of(2026, 11, 1, 5, 15, 0, 0, zone).toInstant().toEpochMilli()
+        val fallBars = usageBars(emptyList(), UsageSpan.HOUR, fall, zone)
+        val fallStarts = fallBars.map { it.startMillis }
+        assertEquals(25, fallBars.size)
+        assertEquals(fallStarts.distinct().sorted(), fallStarts)
+        assertTrue(fallStarts.zipWithNext().all { (left, right) -> right > left })
     }
 
     @Test
@@ -166,6 +232,13 @@ class UsageChartTest {
         assertNull(usageAxisLabel(at, UsageSpan.MINUTE, jerusalem))
         assertEquals("15:00", usageAxisLabel(instant(2026, 10, 4, 15, 0), UsageSpan.MINUTE, jerusalem))
         assertEquals("15", usageAxisLabel(alignUsageStart(at, UsageSpan.HOUR, jerusalem), UsageSpan.HOUR, jerusalem))
+        assertNull(usageAxisLabel(instant(2026, 10, 4, 16, 0), UsageSpan.HOUR, jerusalem))
+        assertEquals("1", usageAxisLabel(instant(2026, 10, 1, 0, 0), UsageSpan.DAY, jerusalem))
+        assertEquals("5", usageAxisLabel(instant(2026, 10, 5, 0, 0), UsageSpan.DAY, jerusalem))
+        assertNull(usageAxisLabel(instant(2026, 10, 4, 0, 0), UsageSpan.DAY, jerusalem))
+        assertEquals("04.10 15:00", usagePageLabel(instant(2026, 10, 4, 15, 0), UsageSpan.MINUTE, jerusalem))
+        assertEquals("04.10", usagePageLabel(instant(2026, 10, 4, 0, 0), UsageSpan.HOUR, jerusalem))
+        assertEquals("10.2026", usagePageLabel(instant(2026, 10, 1, 0, 0), UsageSpan.DAY, jerusalem))
     }
 
     @Test

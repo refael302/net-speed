@@ -14,8 +14,8 @@ android {
         applicationId = "app.netstrip.statusbar"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.7.0"
+        versionCode = 10
+        versionName = "1.7.1"
         buildConfigField(
             "String",
             "UPDATE_MANIFEST_URL",

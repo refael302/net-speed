@@ -4,11 +4,11 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-/** How wide each bar is, and how many bars the chart keeps. */
-enum class UsageSpan(val bucketCount: Int) {
-    MINUTE(60),
-    HOUR(24),
-    DAY(14),
+/** How wide each bar is. One screen is a clock hour, a local day, or a calendar month. */
+enum class UsageSpan {
+    MINUTE,
+    HOUR,
+    DAY,
 }
 
 data class UsageBucket(
@@ -48,15 +48,47 @@ fun alignUsageStart(atMillis: Long, span: UsageSpan, zone: ZoneId): Long {
     return aligned.toInstant().toEpochMilli()
 }
 
+/** How many screens are kept: 24 hours of minutes, 7 days of hours, or 2 calendar months of days. */
+fun usagePageCount(span: UsageSpan): Int = when (span) {
+    UsageSpan.MINUTE -> 24
+    UsageSpan.HOUR -> 7
+    UsageSpan.DAY -> 2
+}
+
 /**
- * One bar per bucket, oldest first, ending at the bucket that contains [nowMillis].
- * Missing buckets stay at zero. Bytes in the same bucket are summed.
+ * Start of the screen [pageBack] steps before the one that contains [nowMillis].
+ * A minute screen starts at the clock hour, an hour screen at local midnight, and a day screen on the 1st.
+ */
+fun usagePageStart(span: UsageSpan, nowMillis: Long, pageBack: Int, zone: ZoneId): Long {
+    val back = pageBack.coerceIn(0, usagePageCount(span) - 1)
+    val time = Instant.ofEpochMilli(nowMillis).atZone(zone)
+    val start = when (span) {
+        UsageSpan.MINUTE -> time.withMinute(0).withSecond(0).withNano(0).minusHours(back.toLong())
+        UsageSpan.HOUR -> time.toLocalDate().atStartOfDay(zone).minusDays(back.toLong())
+        UsageSpan.DAY -> time.toLocalDate().withDayOfMonth(1).atStartOfDay(zone).minusMonths(back.toLong())
+    }
+    return start.toInstant().toEpochMilli()
+}
+
+/** Which kept screen begins at [pageStart], or null once that screen has scrolled out of retention. */
+fun usagePageBack(span: UsageSpan, nowMillis: Long, pageStart: Long, zone: ZoneId): Int? {
+    for (back in 0 until usagePageCount(span)) {
+        if (usagePageStart(span, nowMillis, back, zone) == pageStart) return back
+    }
+    return null
+}
+
+/**
+ * One bar per bucket on a single screen, oldest first.
+ * [pageBack] 0 is the current hour, day, or month. Missing buckets stay at zero.
+ * Bytes in the same bucket are summed.
  */
 fun usageBars(
     stored: List<UsageBucket>,
     span: UsageSpan,
     nowMillis: Long,
     zone: ZoneId,
+    pageBack: Int = 0,
 ): List<UsageBucket> {
     val totals = HashMap<Long, UsageBucket>()
     for (bucket in stored) {
@@ -70,7 +102,7 @@ fun usageBars(
             )
         }
     }
-    return bucketStarts(span, nowMillis, zone).map { start ->
+    return pageBucketStarts(span, nowMillis, pageBack, zone).map { start ->
         totals[start] ?: UsageBucket(start, 0L, 0L)
     }
 }
@@ -177,8 +209,25 @@ fun usageAxisLabel(startMillis: Long, span: UsageSpan, zone: ZoneId): String? {
     return when (span) {
         UsageSpan.MINUTE ->
             if (time.minute % 10 == 0) String.format(Locale.US, "%02d:%02d", time.hour, time.minute) else null
-        UsageSpan.HOUR -> String.format(Locale.US, "%02d", time.hour)
-        UsageSpan.DAY -> String.format(Locale.US, "%02d.%02d", time.dayOfMonth, time.monthValue)
+        UsageSpan.HOUR ->
+            if (time.hour % 3 == 0) String.format(Locale.US, "%02d", time.hour) else null
+        UsageSpan.DAY ->
+            if (time.dayOfMonth == 1 || time.dayOfMonth % 5 == 0) {
+                String.format(Locale.US, "%d", time.dayOfMonth)
+            } else {
+                null
+            }
+    }
+}
+
+/** Caption between the screen arrows: the hour, the day, or the month on screen. */
+fun usagePageLabel(startMillis: Long, span: UsageSpan, zone: ZoneId): String {
+    val time = Instant.ofEpochMilli(startMillis).atZone(zone)
+    return when (span) {
+        UsageSpan.MINUTE ->
+            String.format(Locale.US, "%02d.%02d %02d:00", time.dayOfMonth, time.monthValue, time.hour)
+        UsageSpan.HOUR -> String.format(Locale.US, "%02d.%02d", time.dayOfMonth, time.monthValue)
+        UsageSpan.DAY -> String.format(Locale.US, "%02d.%04d", time.monthValue, time.year)
     }
 }
 
@@ -242,17 +291,38 @@ fun decodeUsageStore(text: String): UsageSnapshot {
     return UsageSnapshot(minutes, hours, days)
 }
 
-private fun bucketStarts(span: UsageSpan, nowMillis: Long, zone: ZoneId): List<Long> {
-    val current = alignUsageStart(nowMillis, span, zone)
-    val currentTime = Instant.ofEpochMilli(current).atZone(zone)
-    return List(span.bucketCount) { index ->
-        val stepsBack = span.bucketCount - 1 - index
-        val shifted = when (span) {
-            UsageSpan.MINUTE -> currentTime.minusMinutes(stepsBack.toLong())
-            UsageSpan.HOUR -> currentTime.minusHours(stepsBack.toLong())
-            UsageSpan.DAY -> currentTime.minusDays(stepsBack.toLong())
+private fun pageBucketStarts(span: UsageSpan, nowMillis: Long, pageBack: Int, zone: ZoneId): List<Long> {
+    val start = usagePageStart(span, nowMillis, pageBack, zone)
+    val startTime = Instant.ofEpochMilli(start).atZone(zone)
+    return when (span) {
+        UsageSpan.MINUTE -> List(60) { index ->
+            startTime.plusMinutes(index.toLong()).toInstant().toEpochMilli()
         }
-        alignUsageStart(shifted.toInstant().toEpochMilli(), span, zone)
+        UsageSpan.HOUR -> {
+            val nextMidnight = startTime.toLocalDate().plusDays(1).atStartOfDay(zone)
+            val starts = ArrayList<Long>(25)
+            var cursor = startTime
+            while (cursor.isBefore(nextMidnight)) {
+                starts.add(cursor.toInstant().toEpochMilli())
+                cursor = cursor.plusHours(1)
+            }
+            starts
+        }
+        UsageSpan.DAY -> {
+            val date = startTime.toLocalDate()
+            List(date.lengthOfMonth()) { index ->
+                date.plusDays(index.toLong()).atStartOfDay(zone).toInstant().toEpochMilli()
+            }
+        }
+    }
+}
+
+/** Every bucket still inside the kept screens, including later slots on the current screen. */
+private fun retainedStarts(span: UsageSpan, nowMillis: Long, zone: ZoneId): Set<Long> {
+    return buildSet {
+        for (pageBack in 0 until usagePageCount(span)) {
+            addAll(pageBucketStarts(span, nowMillis, pageBack, zone))
+        }
     }
 }
 
@@ -264,7 +334,7 @@ private fun recordUsage(
     span: UsageSpan,
     zone: ZoneId,
 ): List<UsageBucket> {
-    val allowed = bucketStarts(span, atMillis, zone).toHashSet()
+    val allowed = retainedStarts(span, atMillis, zone)
     val merged = LinkedHashMap<Long, UsageBucket>()
     for (bucket in stored) {
         if (bucket.startMillis !in allowed) continue

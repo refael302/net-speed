@@ -7,16 +7,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -27,8 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -39,8 +38,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -61,9 +60,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.netstrip.core.ChartSample
 import app.netstrip.core.GraphSpan
+import app.netstrip.core.SpeedReading
+import app.netstrip.core.Transport
 import app.netstrip.core.UsageSpan
 import app.netstrip.core.axisLabel
 import app.netstrip.core.chartSeries
+import app.netstrip.core.labelFor
 import app.netstrip.core.niceAxisMax
 import app.netstrip.statusbar.BuildConfig
 import app.netstrip.statusbar.R
@@ -73,6 +75,7 @@ import app.netstrip.statusbar.update.UpdateState
 @Composable
 fun Dashboard(viewModel: DashboardViewModel) {
     val spark by viewModel.spark.collectAsStateWithLifecycle()
+    val reading by viewModel.reading.collectAsStateWithLifecycle()
     val graphSpan by viewModel.graphSpan.collectAsStateWithLifecycle()
     val usage by viewModel.usage.collectAsStateWithLifecycle()
     val usageSpan by viewModel.usageSpan.collectAsStateWithLifecycle()
@@ -106,6 +109,38 @@ fun Dashboard(viewModel: DashboardViewModel) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
+        Text(
+            stringResource(R.string.app_name),
+            color = NetMuted,
+            fontSize = 13.sp,
+        )
+        Spacer(Modifier.height(8.dp))
+        val live = reading as? SpeedReading.Live
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            RateBlock(
+                caption = stringResource(R.string.download),
+                bytesPerSec = live?.downBytesPerSec,
+                color = NetDown,
+                modifier = Modifier.weight(1f),
+            )
+            RateBlock(
+                caption = stringResource(R.string.upload),
+                bytesPerSec = live?.upBytesPerSec,
+                color = NetUp,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (live != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(TransportLabel(live.transport), color = NetMuted, fontSize = 13.sp)
+        } else if (reading is SpeedReading.Unsupported) {
+            Spacer(Modifier.height(4.dp))
+            Text(stringResource(R.string.unsupported), color = NetDanger, fontSize = 13.sp)
+        } else {
+            Spacer(Modifier.height(4.dp))
+            Text(stringResource(R.string.measuring), color = NetMuted, fontSize = 13.sp)
+        }
+        Spacer(Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -114,8 +149,7 @@ fun Dashboard(viewModel: DashboardViewModel) {
                 stringResource(R.string.show_in_status_bar),
                 modifier = Modifier.weight(1f),
                 color = NetText,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
             )
             Switch(
                 checked = statusBarOn,
@@ -140,128 +174,125 @@ fun Dashboard(viewModel: DashboardViewModel) {
             )
         }
         if (!notificationsAllowed) {
-            TextButton(onClick = {
+            NoticeStrip(stringResource(R.string.allow_notifications)) {
                 if (Build.VERSION.SDK_INT >= 33) {
                     permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     viewModel.openNotificationSettings()
                 }
-            }) {
-                Text(stringResource(R.string.allow_notifications), color = NetDown)
             }
         }
         if (!batteryUnrestricted) {
-            TextButton(onClick = viewModel::allowUnrestrictedBattery) {
-                Text(stringResource(R.string.boot_battery), color = NetDown)
-            }
+            NoticeStrip(stringResource(R.string.boot_battery), viewModel::allowUnrestrictedBattery)
         }
         if (message != null) {
+            Spacer(Modifier.height(8.dp))
             Text(message.orEmpty(), color = NetDanger, fontSize = 14.sp)
         }
 
         Spacer(Modifier.height(20.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SpanButton(stringResource(R.string.range_minute), graphSpan == GraphSpan.MINUTE, Modifier.weight(1f)) {
-                viewModel.selectSpan(GraphSpan.MINUTE)
-            }
-            SpanButton(stringResource(R.string.range_hour), graphSpan == GraphSpan.HOUR, Modifier.weight(1f)) {
-                viewModel.selectSpan(GraphSpan.HOUR)
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            LegendDot(NetDown, stringResource(R.string.download))
-            LegendDot(NetUp, stringResource(R.string.upload))
-        }
-        Spacer(Modifier.height(10.dp))
         val nowLabel = stringResource(R.string.graph_now)
         val axisSeconds = stringResource(R.string.axis_seconds)
         val axisMinutes = stringResource(R.string.axis_minutes)
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            TrafficGraph(
-                points = spark,
-                span = graphSpan,
-                nowLabel = nowLabel,
-                axisSeconds = axisSeconds,
-                axisMinutes = axisMinutes,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp),
-            )
-        }
-
-        Spacer(Modifier.height(28.dp))
-        Text(
-            stringResource(R.string.usage_title),
-            color = NetText,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            stringResource(R.string.usage_hint),
-            color = NetMuted,
-            fontSize = 13.sp,
-        )
-        Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SpanButton(stringResource(R.string.range_minute), usageSpan == UsageSpan.MINUTE, Modifier.weight(1f)) {
-                viewModel.selectUsageSpan(UsageSpan.MINUTE)
-            }
-            SpanButton(stringResource(R.string.range_hour), usageSpan == UsageSpan.HOUR, Modifier.weight(1f)) {
-                viewModel.selectUsageSpan(UsageSpan.HOUR)
-            }
-            SpanButton(stringResource(R.string.range_day), usageSpan == UsageSpan.DAY, Modifier.weight(1f)) {
-                viewModel.selectUsageSpan(UsageSpan.DAY)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            LegendDot(NetWifi, stringResource(R.string.transport_wifi))
-            LegendDot(NetCell, stringResource(R.string.transport_cellular))
-        }
-        Spacer(Modifier.height(10.dp))
-        UsageBars(
-            snapshot = usage,
-            span = usageSpan,
-            tapLabel = stringResource(R.string.usage_tap),
-            selectedPattern = stringResource(R.string.usage_selected),
-            previousLabel = stringResource(R.string.usage_previous),
-            nextLabel = stringResource(R.string.usage_next),
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(Modifier.height(24.dp))
-        Text(
-            stringResource(R.string.installed_version, BuildConfig.VERSION_NAME),
-            color = NetMuted,
-            fontSize = 14.sp,
-        )
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = viewModel::checkForUpdate,
-            enabled = updateState !is UpdateState.Checking && updateState !is UpdateState.Downloading,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = NetCard,
-                contentColor = NetText,
-                disabledContainerColor = NetCard,
-                disabledContentColor = NetMuted,
-            ),
-        ) {
-            Text(
-                when (updateState) {
-                    UpdateState.Checking -> stringResource(R.string.checking_update)
-                    UpdateState.Downloading -> stringResource(R.string.downloading_update)
-                    else -> stringResource(R.string.check_update)
+        ChartCard(stringResource(R.string.speed_title)) {
+            SegmentedControl(
+                labels = listOf(stringResource(R.string.range_minute), stringResource(R.string.range_hour)),
+                selectedIndex = if (graphSpan == GraphSpan.MINUTE) 0 else 1,
+                onSelect = { index ->
+                    viewModel.selectSpan(if (index == 0) GraphSpan.MINUTE else GraphSpan.HOUR)
                 },
             )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LegendDot(NetDown, stringResource(R.string.download))
+                LegendDot(NetUp, stringResource(R.string.upload))
+            }
+            Spacer(Modifier.height(8.dp))
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                TrafficGraph(
+                    points = spark,
+                    span = graphSpan,
+                    nowLabel = nowLabel,
+                    axisSeconds = axisSeconds,
+                    axisMinutes = axisMinutes,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        ChartCard(stringResource(R.string.usage_title)) {
+            Text(
+                stringResource(R.string.usage_hint),
+                color = NetMuted,
+                fontSize = 13.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+            SegmentedControl(
+                labels = listOf(
+                    stringResource(R.string.range_minute),
+                    stringResource(R.string.range_hour),
+                    stringResource(R.string.range_day),
+                ),
+                selectedIndex = when (usageSpan) {
+                    UsageSpan.MINUTE -> 0
+                    UsageSpan.HOUR -> 1
+                    UsageSpan.DAY -> 2
+                },
+                onSelect = { index ->
+                    viewModel.selectUsageSpan(
+                        when (index) {
+                            0 -> UsageSpan.MINUTE
+                            1 -> UsageSpan.HOUR
+                            else -> UsageSpan.DAY
+                        },
+                    )
+                },
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LegendDot(NetWifi, stringResource(R.string.transport_wifi))
+                LegendDot(NetCell, stringResource(R.string.transport_cellular))
+            }
+            Spacer(Modifier.height(4.dp))
+            UsageBars(
+                snapshot = usage,
+                span = usageSpan,
+                tapLabel = stringResource(R.string.usage_tap),
+                selectedPattern = stringResource(R.string.usage_selected),
+                previousLabel = stringResource(R.string.usage_previous),
+                nextLabel = stringResource(R.string.usage_next),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Spacer(Modifier.height(18.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.installed_version, BuildConfig.VERSION_NAME),
+                modifier = Modifier.weight(1f),
+                color = NetMuted,
+                fontSize = 13.sp,
+            )
+            TextButton(
+                onClick = viewModel::checkForUpdate,
+                enabled = updateState !is UpdateState.Checking && updateState !is UpdateState.Downloading,
+            ) {
+                Text(
+                    when (updateState) {
+                        UpdateState.Checking -> stringResource(R.string.checking_update)
+                        UpdateState.Downloading -> stringResource(R.string.downloading_update)
+                        else -> stringResource(R.string.check_update)
+                    },
+                    color = NetMuted,
+                    fontSize = 13.sp,
+                )
+            }
         }
         UpdateResultDialog(updateState, viewModel)
     }
@@ -337,23 +368,118 @@ private fun LegendDot(color: Color, label: String) {
 }
 
 @Composable
-private fun SpanButton(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+private fun ChartCard(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.border(1.dp, if (selected) NetDown else NetLine, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) NetDown else NetCard,
-            contentColor = if (selected) Color(0xFF06281C) else NetMuted,
-        ),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NetCard, RoundedCornerShape(18.dp))
+            .border(1.dp, NetLine, RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {
-        Text(label, fontSize = 13.sp, maxLines = 1)
+        Text(title, color = NetText, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(10.dp))
+        content()
+    }
+}
+
+@Composable
+private fun SegmentedControl(
+    labels: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(NetBg)
+            .padding(3.dp),
+    ) {
+        labels.forEachIndexed { index, label ->
+            val selected = index == selectedIndex
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(if (selected) Color(0xFF314250) else Color.Transparent)
+                    .clickable { onSelect(index) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    color = if (selected) NetText else NetMuted,
+                    fontSize = 13.sp,
+                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RateBlock(
+    caption: String,
+    bytesPerSec: Double?,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val label = bytesPerSec?.let { labelFor(it) }
+    Column(modifier) {
+        Text(caption, color = NetMuted, fontSize = 12.sp)
+        Spacer(Modifier.height(2.dp))
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    label?.value ?: stringResource(R.string.dash),
+                    color = if (label == null) NetMuted else color,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                if (label != null) {
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        label.unit,
+                        modifier = Modifier.padding(bottom = 5.dp),
+                        color = color,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoticeStrip(text: String, onClick: () -> Unit) {
+    Text(
+        text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(NetDanger.copy(alpha = 0.14f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        color = NetDanger,
+        fontSize = 13.sp,
+    )
+}
+
+@Composable
+private fun TransportLabel(transport: Transport): String {
+    return when (transport) {
+        Transport.WIFI -> stringResource(R.string.transport_wifi)
+        Transport.CELLULAR -> stringResource(R.string.transport_cellular)
+        Transport.ETHERNET -> stringResource(R.string.transport_ethernet)
+        Transport.OTHER -> stringResource(R.string.transport_other)
+        Transport.NONE -> stringResource(R.string.transport_none)
     }
 }
 
@@ -375,12 +501,7 @@ private fun TrafficGraph(
         now,
     )
     val axisMax = niceAxisMax(series.maxOf { maxOf(it.down, it.up) })
-    Canvas(
-        modifier
-            .background(NetCard, RoundedCornerShape(18.dp))
-            .border(1.dp, NetLine, RoundedCornerShape(18.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-    ) {
+    Canvas(modifier) {
         if (size.width < 1f || size.height < 1f) return@Canvas
         val tickFractions = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
         val yLabels = tickFractions.map { axisLabel((axisMax * it).toDouble()) }
@@ -392,13 +513,6 @@ private fun TrafficGraph(
         val plotBottom = size.height - xGutter
         val plotWidth = (plotRight - plotLeft).coerceAtLeast(1f)
         val plotHeight = (plotBottom - plotTop).coerceAtLeast(1f)
-
-        drawRect(
-            color = NetLine,
-            topLeft = Offset(plotLeft, plotTop),
-            size = Size(plotWidth, plotHeight),
-            style = Stroke(width = 1.dp.toPx()),
-        )
 
         tickFractions.forEachIndexed { index, fraction ->
             val y = plotBottom - fraction * plotHeight
@@ -469,12 +583,24 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSeries(
     if (samples.size < 2 || max <= 0f) return
     val step = plotWidth / (samples.size - 1).toFloat()
     val line = Path()
+    val fill = Path()
+    val baseline = plotTop + plotHeight
     val coords = samples.mapIndexed { index, sample ->
         val x = plotLeft + index * step
         val y = plotTop + plotHeight - (sample / max).coerceIn(0f, 1f) * plotHeight
-        if (index == 0) line.moveTo(x, y) else line.lineTo(x, y)
+        if (index == 0) {
+            line.moveTo(x, y)
+            fill.moveTo(x, baseline)
+            fill.lineTo(x, y)
+        } else {
+            line.lineTo(x, y)
+            fill.lineTo(x, y)
+        }
         Offset(x, y)
     }
+    fill.lineTo(coords.last().x, baseline)
+    fill.close()
+    drawPath(fill, color.copy(alpha = 0.18f))
     drawPath(
         line,
         color,

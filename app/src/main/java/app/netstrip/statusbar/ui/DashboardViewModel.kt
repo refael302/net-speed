@@ -36,6 +36,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     private var previewJob: Job? = null
 
     val spark = LiveSpeed.spark
+    val reading = LiveSpeed.reading
     val statusBarOn = prefs.enabled
 
     private val spanState = MutableStateFlow(GraphSpan.MINUTE)

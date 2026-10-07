@@ -1,8 +1,6 @@
 package app.netstrip.statusbar.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -13,8 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -115,11 +113,7 @@ fun UsageBars(
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(
-            modifier
-                .semantics { contentDescription = description }
-                .background(NetCard, RoundedCornerShape(18.dp))
-                .border(1.dp, NetLine, RoundedCornerShape(18.dp))
-                .padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 8.dp),
+            modifier.semantics { contentDescription = description },
         ) {
             UsagePager(
                 label = pageLabel,
@@ -190,16 +184,20 @@ private fun PageArrow(
     description: String,
     onClick: () -> Unit,
 ) {
-    Text(
-        symbol,
+    Box(
         modifier = Modifier
+            .size(48.dp)
             .semantics { contentDescription = description }
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 2.dp),
-        color = if (enabled) NetText else NetMuted.copy(alpha = 0.35f),
-        fontSize = 22.sp,
-        fontWeight = FontWeight.Medium,
-    )
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            symbol,
+            color = if (enabled) NetText else NetMuted.copy(alpha = 0.35f),
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
 }
 
 @Composable
@@ -294,7 +292,7 @@ private fun UsagePlot(
         val plotPx = PlotHeight.toPx()
         val plotBottom = plotTop + plotPx
         val slot = size.width / bars.size
-        val barWidth = (slot * 0.62f).coerceIn(1.5.dp.toPx(), 16.dp.toPx())
+        val barWidth = (slot * 0.5f).coerceIn(1.5.dp.toPx(), 14.dp.toPx())
 
         listOf(0f, 0.5f, 1f).forEach { fraction ->
             val y = plotBottom - fraction * plotPx
@@ -376,14 +374,13 @@ private fun DrawScope.drawUsageBar(
         gapPx = 2.dp.toPx(),
     )
     val barLeft = center - barWidth / 2f
-    if (heights.wifi <= 0f && heights.cellular <= 0f) {
-        drawRoundRect(
-            color = NetLine,
-            topLeft = Offset(barLeft, plotBottom - 2.dp.toPx()),
-            size = Size(barWidth, 2.dp.toPx()),
-            cornerRadius = CornerRadius(1.dp.toPx()),
-        )
-    } else {
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.05f),
+        topLeft = Offset(barLeft, plotTop),
+        size = Size(barWidth, plotPx),
+        cornerRadius = CornerRadius(2.dp.toPx()),
+    )
+    if (heights.wifi > 0f || heights.cellular > 0f) {
         if (heights.wifi > 0f) {
             drawRoundRect(
                 color = NetWifi,

@@ -17,6 +17,7 @@
     <string name="usage_previous">Previous screen</string>
     <string name="usage_next">Next screen</string>
     <string name="usage_selected">%1$s, %2$s, Wi-Fi %3$s, cellular %4$s</string>
+    <string name="usage_screen">Wi-Fi %1$s, cellular %2$s</string>
     <string name="axis_seconds">%1$ds</string>
     <string name="axis_minutes">%1$dm</string>
     <string name="graph_now">Now</string>

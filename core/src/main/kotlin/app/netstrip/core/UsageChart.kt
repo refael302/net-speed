@@ -231,34 +231,17 @@ fun usagePageLabel(startMillis: Long, span: UsageSpan, zone: ZoneId): String {
     }
 }
 
-data class SegmentHeights(
-    val wifi: Float,
-    val cellular: Float,
+data class UsageTotals(
+    val wifiBytes: Long,
+    val cellularBytes: Long,
 )
 
-/** Pixel heights for a stacked bar. A non-zero side stays visible, and the pair fits in [plotPx]. */
-fun usageSegmentHeights(
-    wifiBytes: Long,
-    cellularBytes: Long,
-    axisMax: Float,
-    plotPx: Float,
-    minPx: Float = 0f,
-    gapPx: Float = 0f,
-): SegmentHeights {
-    if (axisMax <= 0f || plotPx <= 0f) return SegmentHeights(0f, 0f)
-    var wifi = if (wifiBytes > 0L) plotPx * (wifiBytes.toFloat() / axisMax) else 0f
-    var cellular = if (cellularBytes > 0L) plotPx * (cellularBytes.toFloat() / axisMax) else 0f
-    if (wifiBytes > 0L) wifi = maxOf(wifi, minPx)
-    if (cellularBytes > 0L) cellular = maxOf(cellular, minPx)
-    val gap = if (wifi > 0f && cellular > 0f) gapPx else 0f
-    val available = (plotPx - gap).coerceAtLeast(0f)
-    val sum = wifi + cellular
-    if (sum > available && sum > 0f) {
-        val scale = available / sum
-        wifi *= scale
-        cellular *= scale
-    }
-    return SegmentHeights(wifi, cellular)
+/** Wi-Fi and cellular summed across every bar on the screen. */
+fun usageScreenTotals(bars: List<UsageBucket>): UsageTotals {
+    return UsageTotals(
+        wifiBytes = bars.sumOf { it.wifiBytes },
+        cellularBytes = bars.sumOf { it.cellularBytes },
+    )
 }
 
 fun encodeUsageStore(snapshot: UsageSnapshot): String = buildString {

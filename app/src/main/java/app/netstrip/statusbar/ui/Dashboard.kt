@@ -252,16 +252,14 @@ fun Dashboard(viewModel: DashboardViewModel) {
                 },
             )
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                LegendDot(NetWifi, stringResource(R.string.transport_wifi))
-                LegendDot(NetCell, stringResource(R.string.transport_cellular))
-            }
-            Spacer(Modifier.height(4.dp))
             UsageBars(
                 snapshot = usage,
                 span = usageSpan,
                 tapLabel = stringResource(R.string.usage_tap),
                 selectedPattern = stringResource(R.string.usage_selected),
+                screenPattern = stringResource(R.string.usage_screen),
+                wifiLabel = stringResource(R.string.transport_wifi),
+                cellularLabel = stringResource(R.string.transport_cellular),
                 previousLabel = stringResource(R.string.usage_previous),
                 nextLabel = stringResource(R.string.usage_next),
                 modifier = Modifier.fillMaxWidth(),

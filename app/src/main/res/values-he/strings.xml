@@ -17,6 +17,7 @@
     <string name="usage_previous">מסך קודם</string>
     <string name="usage_next">מסך הבא</string>
     <string name="usage_selected">%1$s, %2$s, Wi-Fi %3$s, סלולרי %4$s</string>
+    <string name="usage_screen">Wi-Fi %1$s, סלולרי %2$s</string>
     <string name="axis_seconds">%1$d שנ׳</string>
     <string name="axis_minutes">%1$d דק׳</string>
     <string name="graph_now">עכשיו</string>

@@ -1,9 +1,11 @@
 package app.netstrip.statusbar.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -47,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import app.netstrip.core.UsageBucket
 import app.netstrip.core.UsageSnapshot
 import app.netstrip.core.UsageSpan
+import app.netstrip.core.UsageTotals
 import app.netstrip.core.bucketsFor
 import app.netstrip.core.niceAxisMax
 import app.netstrip.core.usageAxisLabel
@@ -55,7 +59,7 @@ import app.netstrip.core.usagePageBack
 import app.netstrip.core.usagePageCount
 import app.netstrip.core.usagePageLabel
 import app.netstrip.core.usagePageStart
-import app.netstrip.core.usageSegmentHeights
+import app.netstrip.core.usageScreenTotals
 import app.netstrip.core.usageTimeLabel
 import app.netstrip.core.volumeLabel
 import java.time.ZoneId
@@ -74,6 +78,9 @@ fun UsageBars(
     span: UsageSpan,
     tapLabel: String,
     selectedPattern: String,
+    screenPattern: String,
+    wifiLabel: String,
+    cellularLabel: String,
     previousLabel: String,
     nextLabel: String,
     modifier: Modifier = Modifier,
@@ -87,15 +94,20 @@ fun UsageBars(
     }
     val pageBack = resolvedBack ?: 0
     val bars = usageBars(snapshot.bucketsFor(span), span, now, zone, pageBack)
+    val totals = usageScreenTotals(bars)
     val pageCount = usagePageCount(span)
     val pageStart = bars.firstOrNull()?.startMillis ?: usagePageStart(span, now, pageBack, zone)
     val pageLabel = usagePageLabel(pageStart, span, zone)
     val nowState by rememberUpdatedState(now)
     var selectedStart by remember(span) { mutableStateOf<Long?>(null) }
     val selected = bars.firstOrNull { it.startMillis == selectedStart }
-    val axisMax = niceAxisMax(bars.maxOfOrNull { it.totalBytes.toFloat() } ?: 0f)
+    val axisMax = niceAxisMax(
+        bars.maxOfOrNull { maxOf(it.wifiBytes, it.cellularBytes).toFloat() } ?: 0f,
+    )
     val description = buildString {
         append(pageLabel)
+        append(". ")
+        append(screenPattern.format(volumeLabel(totals.wifiBytes), volumeLabel(totals.cellularBytes)))
         append(". ")
         if (selected == null) {
             append(tapLabel)
@@ -111,39 +123,41 @@ fun UsageBars(
         }
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Column(
-            modifier.semantics { contentDescription = description },
-        ) {
-            UsagePager(
-                label = pageLabel,
-                canGoOlder = pageBack < pageCount - 1,
-                canGoNewer = pageBack > 0,
-                previousLabel = previousLabel,
-                nextLabel = nextLabel,
-                onOlder = {
-                    val next = pageBack + 1
-                    if (next < pageCount) {
-                        pinnedStart = usagePageStart(span, nowState, next, zone)
-                    }
-                },
-                onNewer = {
-                    val next = pageBack - 1
-                    pinnedStart = if (next <= 0) null else usagePageStart(span, nowState, next, zone)
-                },
-            )
-            Row {
-                UsageAxis(axisMax)
-                UsagePlot(
-                    bars = bars,
-                    span = span,
-                    zone = zone,
-                    axisMax = axisMax,
-                    tapLabel = tapLabel,
-                    selectedStart = selectedStart,
-                    onSelect = { selectedStart = it },
-                    modifier = Modifier.weight(1f),
+    Column(modifier.semantics { contentDescription = description }) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Column {
+                UsageLegend(wifiLabel, cellularLabel, totals)
+                Spacer(Modifier.height(8.dp))
+                UsagePager(
+                    label = pageLabel,
+                    canGoOlder = pageBack < pageCount - 1,
+                    canGoNewer = pageBack > 0,
+                    previousLabel = previousLabel,
+                    nextLabel = nextLabel,
+                    onOlder = {
+                        val next = pageBack + 1
+                        if (next < pageCount) {
+                            pinnedStart = usagePageStart(span, nowState, next, zone)
+                        }
+                    },
+                    onNewer = {
+                        val next = pageBack - 1
+                        pinnedStart = if (next <= 0) null else usagePageStart(span, nowState, next, zone)
+                    },
                 )
+                Row {
+                    UsageAxis(axisMax)
+                    UsagePlot(
+                        bars = bars,
+                        span = span,
+                        zone = zone,
+                        axisMax = axisMax,
+                        tapLabel = tapLabel,
+                        selectedStart = selectedStart,
+                        onSelect = { selectedStart = it },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }
@@ -292,7 +306,6 @@ private fun UsagePlot(
         val plotPx = PlotHeight.toPx()
         val plotBottom = plotTop + plotPx
         val slot = size.width / bars.size
-        val barWidth = (slot * 0.5f).coerceIn(1.5.dp.toPx(), 14.dp.toPx())
 
         listOf(0f, 0.5f, 1f).forEach { fraction ->
             val y = plotBottom - fraction * plotPx
@@ -309,7 +322,6 @@ private fun UsagePlot(
                 bucket = bucket,
                 index = index,
                 slot = slot,
-                barWidth = barWidth,
                 plotTop = plotTop,
                 plotBottom = plotBottom,
                 plotPx = plotPx,
@@ -343,7 +355,6 @@ private fun DrawScope.drawUsageBar(
     bucket: UsageBucket,
     index: Int,
     slot: Float,
-    barWidth: Float,
     plotTop: Float,
     plotBottom: Float,
     plotPx: Float,
@@ -365,40 +376,15 @@ private fun DrawScope.drawUsageBar(
             cornerRadius = CornerRadius(4.dp.toPx()),
         )
     }
-    val heights = usageSegmentHeights(
-        wifiBytes = bucket.wifiBytes,
-        cellularBytes = bucket.cellularBytes,
-        axisMax = axisMax,
-        plotPx = plotPx,
-        minPx = 3.dp.toPx(),
-        gapPx = 2.dp.toPx(),
-    )
-    val barLeft = center - barWidth / 2f
-    drawRoundRect(
-        color = Color.White.copy(alpha = 0.05f),
-        topLeft = Offset(barLeft, plotTop),
-        size = Size(barWidth, plotPx),
-        cornerRadius = CornerRadius(2.dp.toPx()),
-    )
-    if (heights.wifi > 0f || heights.cellular > 0f) {
-        if (heights.wifi > 0f) {
-            drawRoundRect(
-                color = NetWifi,
-                topLeft = Offset(barLeft, plotBottom - heights.wifi),
-                size = Size(barWidth, heights.wifi),
-                cornerRadius = CornerRadius(2.dp.toPx()),
-            )
-        }
-        if (heights.cellular > 0f) {
-            val top = plotBottom - heights.wifi - (if (heights.wifi > 0f) 2.dp.toPx() else 0f) - heights.cellular
-            drawRoundRect(
-                color = NetCell,
-                topLeft = Offset(barLeft, top),
-                size = Size(barWidth, heights.cellular),
-                cornerRadius = CornerRadius(2.dp.toPx()),
-            )
-        }
-    }
+    val maxPair = slot * 0.82f
+    val gap = minOf(1.5.dp.toPx(), maxPair * 0.18f).coerceAtLeast(0f)
+    val capped = ((maxPair - gap) / 2f).coerceAtLeast(0f).coerceAtMost(7.dp.toPx())
+    val pairWidth = capped * 2f + gap
+    val barWidth = if (pairWidth > slot && pairWidth > 0f) capped * (slot / pairWidth) else capped
+    val wifiLeft = center - pairWidth / 2f
+    val cellLeft = wifiLeft + barWidth + gap
+    drawTransportBar(wifiLeft, barWidth, bucket.wifiBytes, NetWifi, plotTop, plotBottom, plotPx, axisMax)
+    drawTransportBar(cellLeft, barWidth, bucket.cellularBytes, NetCell, plotTop, plotBottom, plotPx, axisMax)
     if (selected) {
         drawRoundRect(
             color = NetText.copy(alpha = 0.85f),
@@ -416,6 +402,86 @@ private fun DrawScope.drawUsageBar(
             layout,
             color = if (selected) NetText else NetMuted,
             topLeft = Offset(captionLeft, plotBottom + 4.dp.toPx()),
+        )
+    }
+}
+
+private fun DrawScope.drawTransportBar(
+    left: Float,
+    barWidth: Float,
+    bytes: Long,
+    color: Color,
+    plotTop: Float,
+    plotBottom: Float,
+    plotPx: Float,
+    axisMax: Float,
+) {
+    val radius = CornerRadius(2.dp.toPx())
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.05f),
+        topLeft = Offset(left, plotTop),
+        size = Size(barWidth, plotPx),
+        cornerRadius = radius,
+    )
+    if (bytes <= 0L || axisMax <= 0f || plotPx <= 0f) return
+    val height = (plotPx * (bytes.toFloat() / axisMax))
+        .coerceAtLeast(3.dp.toPx())
+        .coerceAtMost(plotPx)
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(left, plotBottom - height),
+        size = Size(barWidth, height),
+        cornerRadius = radius,
+    )
+}
+
+@Composable
+private fun UsageLegend(
+    wifiLabel: String,
+    cellularLabel: String,
+    totals: UsageTotals,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TransportTotal(NetWifi, wifiLabel, totals.wifiBytes, Modifier.weight(1f, fill = false))
+        TransportTotal(NetCell, cellularLabel, totals.cellularBytes, Modifier.weight(1f, fill = false))
+    }
+}
+
+@Composable
+private fun TransportTotal(
+    color: Color,
+    label: String,
+    bytes: Long,
+    modifier: Modifier,
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .background(color, CircleShape),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            label,
+            modifier = Modifier.weight(1f, fill = false),
+            color = NetMuted,
+            fontSize = 13.sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            volumeLabel(bytes),
+            color = color,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }

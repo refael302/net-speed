@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "1.7.2",
+  "versionCode": 12,
+  "versionName": "1.7.3",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "המסך מציג את הקצב עכשיו למעלה.\nגרף הקצב וגרף השימוש יושבים בכרטיסים נפרדים.\nבדיקת העדכון עברה לשורה שקטה למטה."
+  "notes": "Wi-Fi וסלולר מופיעים זה לצד זה.\nליד כל אחד רשום סך התעבורה של המסך שמוצג: שעה בגרף הדקות, יממה בגרף השעות, וחודש בגרף הימים."
 }

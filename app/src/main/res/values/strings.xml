@@ -10,8 +10,9 @@
     <string name="range_minute">Minute</string>
     <string name="range_hour">Hour</string>
     <string name="range_day">Day</string>
+    <string name="speed_title">Speed</string>
     <string name="usage_title">Data used</string>
-    <string name="usage_hint">How much data actually moved, download and upload together. Anything that did not go over cellular is counted as Wi-Fi. Tap a bar for the time, the total, and both amounts. The arrows move between hours, days, or months.</string>
+    <string name="usage_hint">Download and upload together. Tap a bar to see Wi-Fi and cellular.</string>
     <string name="usage_tap">Tap a bar</string>
     <string name="usage_previous">Previous screen</string>
     <string name="usage_next">Next screen</string>

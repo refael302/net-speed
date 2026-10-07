@@ -1,6 +1,6 @@
 {
-  "versionCode": 12,
-  "versionName": "1.7.3",
+  "versionCode": 13,
+  "versionName": "1.7.4",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "Wi-Fi וסלולר מופיעים זה לצד זה.\nליד כל אחד רשום סך התעבורה של המסך שמוצג: שעה בגרף הדקות, יממה בגרף השעות, וחודש בגרף הימים."
+  "notes": "Wi-Fi וסלולר מופיעים אחד מתחת לשני.\nליד כל אחד רשום סך התעבורה של המסך שמוצג: שעה בגרף הדקות, יממה בגרף השעות, וחודש בגרף הימים."
 }

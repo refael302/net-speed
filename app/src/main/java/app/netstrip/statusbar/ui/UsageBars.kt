@@ -60,13 +60,14 @@ import app.netstrip.core.usagePageCount
 import app.netstrip.core.usagePageLabel
 import app.netstrip.core.usagePageStart
 import app.netstrip.core.usageScreenTotals
+import app.netstrip.core.usageSegmentHeights
 import app.netstrip.core.usageTimeLabel
 import app.netstrip.core.volumeLabel
 import java.time.ZoneId
 import kotlin.math.abs
 import kotlin.math.max
 
-private val TooltipLane = 64.dp
+private val TooltipLane = 88.dp
 private val PlotHeight = 148.dp
 private val AxisLane = 22.dp
 private val ChartHeight = TooltipLane + PlotHeight + AxisLane
@@ -101,9 +102,7 @@ fun UsageBars(
     val nowState by rememberUpdatedState(now)
     var selectedStart by remember(span) { mutableStateOf<Long?>(null) }
     val selected = bars.firstOrNull { it.startMillis == selectedStart }
-    val axisMax = niceAxisMax(
-        bars.maxOfOrNull { maxOf(it.wifiBytes, it.cellularBytes).toFloat() } ?: 0f,
-    )
+    val axisMax = niceAxisMax(bars.maxOfOrNull { it.totalBytes.toFloat() } ?: 0f)
     val description = buildString {
         append(pageLabel)
         append(". ")
@@ -376,15 +375,40 @@ private fun DrawScope.drawUsageBar(
             cornerRadius = CornerRadius(4.dp.toPx()),
         )
     }
-    val maxPair = slot * 0.82f
-    val gap = minOf(1.5.dp.toPx(), maxPair * 0.18f).coerceAtLeast(0f)
-    val capped = ((maxPair - gap) / 2f).coerceAtLeast(0f).coerceAtMost(7.dp.toPx())
-    val pairWidth = capped * 2f + gap
-    val barWidth = if (pairWidth > slot && pairWidth > 0f) capped * (slot / pairWidth) else capped
-    val wifiLeft = center - pairWidth / 2f
-    val cellLeft = wifiLeft + barWidth + gap
-    drawTransportBar(wifiLeft, barWidth, bucket.wifiBytes, NetWifi, plotTop, plotBottom, plotPx, axisMax)
-    drawTransportBar(cellLeft, barWidth, bucket.cellularBytes, NetCell, plotTop, plotBottom, plotPx, axisMax)
+    val barWidth = (slot * 0.5f).coerceIn(1.5.dp.toPx(), 14.dp.toPx())
+    val barLeft = center - barWidth / 2f
+    val radius = CornerRadius(2.dp.toPx())
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.05f),
+        topLeft = Offset(barLeft, plotTop),
+        size = Size(barWidth, plotPx),
+        cornerRadius = radius,
+    )
+    val heights = usageSegmentHeights(
+        wifiBytes = bucket.wifiBytes,
+        cellularBytes = bucket.cellularBytes,
+        axisMax = axisMax,
+        plotPx = plotPx,
+        minPx = 3.dp.toPx(),
+        gapPx = 2.dp.toPx(),
+    )
+    if (heights.wifi > 0f) {
+        drawRoundRect(
+            color = NetWifi,
+            topLeft = Offset(barLeft, plotBottom - heights.wifi),
+            size = Size(barWidth, heights.wifi),
+            cornerRadius = radius,
+        )
+    }
+    if (heights.cellular > 0f) {
+        val top = plotBottom - heights.wifi - (if (heights.wifi > 0f) 2.dp.toPx() else 0f) - heights.cellular
+        drawRoundRect(
+            color = NetCell,
+            topLeft = Offset(barLeft, top),
+            size = Size(barWidth, heights.cellular),
+            cornerRadius = radius,
+        )
+    }
     if (selected) {
         drawRoundRect(
             color = NetText.copy(alpha = 0.85f),
@@ -406,48 +430,15 @@ private fun DrawScope.drawUsageBar(
     }
 }
 
-private fun DrawScope.drawTransportBar(
-    left: Float,
-    barWidth: Float,
-    bytes: Long,
-    color: Color,
-    plotTop: Float,
-    plotBottom: Float,
-    plotPx: Float,
-    axisMax: Float,
-) {
-    val radius = CornerRadius(2.dp.toPx())
-    drawRoundRect(
-        color = Color.White.copy(alpha = 0.05f),
-        topLeft = Offset(left, plotTop),
-        size = Size(barWidth, plotPx),
-        cornerRadius = radius,
-    )
-    if (bytes <= 0L || axisMax <= 0f || plotPx <= 0f) return
-    val height = (plotPx * (bytes.toFloat() / axisMax))
-        .coerceAtLeast(3.dp.toPx())
-        .coerceAtMost(plotPx)
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(left, plotBottom - height),
-        size = Size(barWidth, height),
-        cornerRadius = radius,
-    )
-}
-
 @Composable
 private fun UsageLegend(
     wifiLabel: String,
     cellularLabel: String,
     totals: UsageTotals,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TransportTotal(NetWifi, wifiLabel, totals.wifiBytes, Modifier.weight(1f, fill = false))
-        TransportTotal(NetCell, cellularLabel, totals.cellularBytes, Modifier.weight(1f, fill = false))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TransportTotal(NetWifi, wifiLabel, totals.wifiBytes)
+        TransportTotal(NetCell, cellularLabel, totals.cellularBytes)
     }
 }
 
@@ -456,9 +447,8 @@ private fun TransportTotal(
     color: Color,
     label: String,
     bytes: Long,
-    modifier: Modifier,
 ) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier
                 .size(8.dp)
@@ -467,12 +457,10 @@ private fun TransportTotal(
         Spacer(Modifier.width(6.dp))
         Text(
             label,
-            modifier = Modifier.weight(1f, fill = false),
             color = NetMuted,
             fontSize = 13.sp,
             maxLines = 1,
             softWrap = false,
-            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.width(6.dp))
         Text(
@@ -541,11 +529,13 @@ private fun DrawScope.drawUsageChip(
     val dot = 6.dp.toPx()
     val dotGap = 4.dp.toPx()
     val line1Width = time.size.width + gap + total.size.width
-    val line2Width = dot + dotGap + wifi.size.width + gap + dot + dotGap + cellular.size.width
+    val wifiWidth = dot + dotGap + wifi.size.width
+    val cellWidth = dot + dotGap + cellular.size.width
     val line1Height = max(time.size.height, total.size.height).toFloat()
-    val line2Height = max(wifi.size.height, cellular.size.height).toFloat()
-    val blockWidth = max(line1Width, line2Width) + padX * 2f
-    val blockHeight = padY * 2f + line1Height + lineGap + line2Height
+    val line2Height = max(wifi.size.height.toFloat(), dot)
+    val line3Height = max(cellular.size.height.toFloat(), dot)
+    val blockWidth = max(line1Width, max(wifiWidth, cellWidth)) + padX * 2f
+    val blockHeight = padY * 2f + line1Height + lineGap + line2Height + lineGap + line3Height
     val left = (centerX - blockWidth / 2f).coerceIn(0f, (size.width - blockWidth).coerceAtLeast(0f))
     val top = (plotTop - blockHeight - 4.dp.toPx()).coerceAtLeast(2.dp.toPx())
     drawRoundRect(
@@ -565,18 +555,13 @@ private fun DrawScope.drawUsageChip(
     val line1Top = top + padY
     drawText(time, color = NetText, topLeft = Offset(line1Left, line1Top))
     drawText(total, color = NetText, topLeft = Offset(line1Left + time.size.width + gap, line1Top))
-    val line2Left = left + (blockWidth - line2Width) / 2f
-    val line2Top = line1Top + line1Height + lineGap
     val dotRadius = dot / 2f
-    val dotY = line2Top + line2Height / 2f
-    drawCircle(NetWifi, dotRadius, Offset(line2Left + dotRadius, dotY))
-    val wifiLeft = line2Left + dot + dotGap
-    drawText(wifi, color = NetWifi, topLeft = Offset(wifiLeft, line2Top))
-    val cellDotLeft = wifiLeft + wifi.size.width + gap
-    drawCircle(NetCell, dotRadius, Offset(cellDotLeft + dotRadius, dotY))
-    drawText(
-        cellular,
-        color = NetCell,
-        topLeft = Offset(cellDotLeft + dot + dotGap, line2Top),
-    )
+    val wifiTop = line1Top + line1Height + lineGap
+    val wifiLeft = left + (blockWidth - wifiWidth) / 2f
+    drawCircle(NetWifi, dotRadius, Offset(wifiLeft + dotRadius, wifiTop + line2Height / 2f))
+    drawText(wifi, color = NetWifi, topLeft = Offset(wifiLeft + dot + dotGap, wifiTop))
+    val cellTop = wifiTop + line2Height + lineGap
+    val cellLeft = left + (blockWidth - cellWidth) / 2f
+    drawCircle(NetCell, dotRadius, Offset(cellLeft + dotRadius, cellTop + line3Height / 2f))
+    drawText(cellular, color = NetCell, topLeft = Offset(cellLeft + dot + dotGap, cellTop))
 }

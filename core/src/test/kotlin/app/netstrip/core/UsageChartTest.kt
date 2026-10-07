@@ -242,6 +242,20 @@ class UsageChartTest {
     }
 
     @Test
+    fun stackedHeightsStayInsideThePlot() {
+        val heights = usageSegmentHeights(
+            wifiBytes = 1,
+            cellularBytes = 1,
+            axisMax = 1_000f,
+            plotPx = 100f,
+            minPx = 80f,
+            gapPx = 10f,
+        )
+        assertEquals(100f, heights.wifi + heights.cellular + 10f, 0.01f)
+        assertTrue(heights.wifi > 0f && heights.cellular > 0f)
+    }
+
+    @Test
     fun screenTotalsAddTheBarsOnThatScreen() {
         val at15 = instant(2026, 10, 4, 15, 7)
         val at16 = instant(2026, 10, 4, 16, 10)

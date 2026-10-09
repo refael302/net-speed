@@ -1,6 +1,6 @@
 {
-  "versionCode": 17,
-  "versionName": "1.7.8",
+  "versionCode": 18,
+  "versionName": "1.7.9",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "החץ ירד מהסמל בשורת המצב. למעלה הורדה, למטה העלאה, והמספרים בגודל קבוע בלי מתיחה."
+  "notes": "המספרים בשורת המצב ממלאים את כל המשבצת, לגובה ולרוחב."
 }

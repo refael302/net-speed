@@ -10,8 +10,6 @@ import android.graphics.Typeface
 import app.netstrip.statusbar.data.IconMode
 
 class SpeedIconRenderer {
-    private var cachedTextSize = 0f
-
     fun render(down: String, up: String, mode: IconMode): Bitmap {
         val size = 128
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -29,53 +27,39 @@ class SpeedIconRenderer {
     }
 
     /**
-     * Top row is download, bottom row is upload. No arrow, so the digits keep the width.
-     * One text size for every label, one pixel between the digits, no vertical stretch.
+     * Top row is download, bottom row is upload.
+     * Each row fills the slot from edge to edge. Digit height stays natural;
+     * only the width is scaled so a short label still reaches both sides.
      */
     private fun drawPair(canvas: Canvas, paint: Paint, down: String, up: String, size: Int) {
-        val textSize = fixedTextSize(paint, size)
+        val rowH = (size - ROW_GAP) / 2f
+        paint.textSize = rowH
+        val probe = textBounds(paint, "8")
+        val inkPerEm = probe.height().toFloat() / rowH
+        val textSize = if (inkPerEm > 0f) rowH / inkPerEm else rowH
         paint.textSize = textSize
         val ref = textBounds(paint, "8")
-        val ink = ref.height().toFloat().coerceAtLeast(1f)
-        val top = ((size - (ink * 2f + ROW_GAP)) / 2f).coerceAtLeast(0f)
-        drawTextRow(canvas, paint, down, top, ref, textSize)
-        drawTextRow(canvas, paint, up, top + ink + ROW_GAP, ref, textSize)
+        drawFilledRow(canvas, paint, down, 0f, ref, textSize, size)
+        drawFilledRow(canvas, paint, up, rowH + ROW_GAP, ref, textSize, size)
     }
 
-    private fun drawTextRow(
+    private fun drawFilledRow(
         canvas: Canvas,
         paint: Paint,
         text: String,
         top: Float,
         box: Rect,
         textSize: Float,
+        size: Int,
     ) {
         paint.textSize = textSize
-        canvas.drawText(text, 1f, top - box.top, paint)
-    }
-
-    private fun fixedTextSize(paint: Paint, size: Int): Float {
-        val cached = cachedTextSize
-        if (cached > 0f) return cached
-        val fitted = minOf(
-            fitTextSize(paint, "0.2M", size, size.toFloat()),
-            fitTextSize(paint, "100G", size, size.toFloat()),
-        )
-        cachedTextSize = fitted
-        return fitted
-    }
-
-    private fun fitTextSize(paint: Paint, text: String, size: Int, start: Float): Float {
-        val maxWidth = size - 2f
-        var textSize = start
-        paint.textSize = textSize
-        var textWidth = paint.measureText(text)
-        while (textWidth > maxWidth && textSize > 18f) {
-            textSize -= 1f
-            paint.textSize = textSize
-            textWidth = paint.measureText(text)
-        }
-        return textSize
+        paint.textScaleX = 1f
+        val bounds = textBounds(paint, text)
+        val inkW = bounds.width().toFloat().coerceAtLeast(1f)
+        val scaleX = size.toFloat() / inkW
+        paint.textScaleX = scaleX
+        canvas.drawText(text, -bounds.left * scaleX, top - box.top, paint)
+        paint.textScaleX = 1f
     }
 
     private fun textBounds(paint: Paint, text: String): Rect {

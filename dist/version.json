@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "1.7.5",
+  "versionCode": 15,
+  "versionName": "1.7.6",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "המספרים בשורת המצב ממלאים את הסמל עד הקצוות, עם חץ מלא וגדול יותר.\nמספר ארוך מתקצר: 230K מוצג כ-0.2M, ו-320B כ-0.3K."
+  "notes": "הרווח בין שתי שורות המהירות בשורת המצב הוא פיקסל אחד."
 }

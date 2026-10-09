@@ -1,6 +1,6 @@
 {
-  "versionCode": 15,
-  "versionName": "1.7.6",
+  "versionCode": 16,
+  "versionName": "1.7.7",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "הרווח בין שתי שורות המהירות בשורת המצב הוא פיקסל אחד."
+  "notes": "המספרים בשורת המצב ממלאים את כל הגובה, מיושרים לשמאל, ובגודל קבוע."
 }

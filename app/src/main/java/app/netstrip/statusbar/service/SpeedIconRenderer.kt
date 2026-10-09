@@ -7,10 +7,11 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.Typeface
-import kotlin.math.max
 import app.netstrip.statusbar.data.IconMode
 
 class SpeedIconRenderer {
+    private var cachedTextSize = 0f
+
     fun render(down: String, up: String, mode: IconMode): Bitmap {
         val size = 128
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -27,25 +28,23 @@ class SpeedIconRenderer {
         return bitmap
     }
 
-    /** One pixel between the ink of the two rows. Font boxes are taller than the digits. */
+    /**
+     * Both rows share one text size, chosen so the widest label still fits.
+     * The rows are drawn at that size and stretched to the top and bottom edges,
+     * with one pixel between the digits.
+     */
     private fun drawPair(canvas: Canvas, paint: Paint, down: String, up: String, size: Int) {
-        val edge = 1f
-        var textSize = minOf(
-            fitTextSize(paint, down, size, size / 2f),
-            fitTextSize(paint, up, size, size / 2f),
-        )
-        while (textSize > 18f && pairBlock(paint, down, up, textSize) > size - edge * 2f) {
-            textSize -= 1f
-        }
+        val textSize = fixedTextSize(paint, size)
         paint.textSize = textSize
-        val downBox = textBounds(paint, down)
-        val upBox = textBounds(paint, up)
-        val arrowH = textSize * ARROW * ARROW_TALL
-        val downH = max(downBox.height().toFloat(), arrowH)
-        val upH = max(upBox.height().toFloat(), arrowH)
-        val top = ((size - (downH + ROW_GAP + upH)) / 2f).coerceAtLeast(0f)
-        drawInkRow(canvas, paint, down, pointingUp = false, size, top, downH, downBox, textSize)
-        drawInkRow(canvas, paint, up, pointingUp = true, size, top + downH + ROW_GAP, upH, upBox, textSize)
+        val ref = textBounds(paint, "8")
+        val ink = ref.height().toFloat().coerceAtLeast(1f)
+        val scaleY = (size - ROW_GAP) / (ink * 2f)
+        canvas.save()
+        canvas.scale(1f, scaleY)
+        val gap = ROW_GAP / scaleY
+        drawInkRow(canvas, paint, down, pointingUp = false, 0f, ref, textSize)
+        drawInkRow(canvas, paint, up, pointingUp = true, ink + gap, ref, textSize)
+        canvas.restore()
     }
 
     private fun drawInkRow(
@@ -53,34 +52,33 @@ class SpeedIconRenderer {
         paint: Paint,
         text: String,
         pointingUp: Boolean,
-        size: Int,
         top: Float,
-        slotH: Float,
         box: Rect,
         textSize: Float,
     ) {
         paint.textSize = textSize
         val inkH = box.height().toFloat().coerceAtLeast(1f)
-        val inkTop = top + (slotH - inkH) / 2f
-        val baseline = inkTop - box.top
-        val centerY = inkTop + inkH / 2f
-        val textWidth = paint.measureText(text)
+        val baseline = top - box.top
+        val centerY = top + inkH / 2f
         val marker = textSize * ARROW
-        val left = ((size - (marker + GAP + textWidth)) / 2f).coerceAtLeast(0f)
+        val left = 1f
         drawArrow(canvas, paint, left + marker / 2f, centerY, marker, pointingUp)
         canvas.drawText(text, left + marker + GAP, baseline, paint)
     }
 
-    private fun pairBlock(paint: Paint, down: String, up: String, textSize: Float): Float {
-        paint.textSize = textSize
-        val arrowH = textSize * ARROW * ARROW_TALL
-        val downH = max(textBounds(paint, down).height().toFloat(), arrowH)
-        val upH = max(textBounds(paint, up).height().toFloat(), arrowH)
-        return downH + ROW_GAP + upH
+    private fun fixedTextSize(paint: Paint, size: Int): Float {
+        val cached = cachedTextSize
+        if (cached > 0f) return cached
+        val fitted = minOf(
+            fitTextSize(paint, "0.2M", size, size.toFloat()),
+            fitTextSize(paint, "100G", size, size.toFloat()),
+        )
+        cachedTextSize = fitted
+        return fitted
     }
 
     private fun fitTextSize(paint: Paint, text: String, size: Int, start: Float): Float {
-        val maxWidth = size * 0.98f
+        val maxWidth = size - 1f
         var textSize = start
         paint.textSize = textSize
         var marker = textSize * ARROW

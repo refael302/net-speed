@@ -28,49 +28,35 @@ class SpeedIconRenderer {
 
     /**
      * Top row is download, bottom row is upload.
-     * The ink box of each row is the full slot width. Together the rows use
-     * every pixel except one empty pixel between them.
+     * One natural size for every label, chosen so the widest label ("4.0M":
+     * two digits, a point, and M) fits the slot width. Nothing is stretched.
+     * Height is not the limit, so a margin stays above and below the rows.
      */
     private fun drawPair(canvas: Canvas, paint: Paint, down: String, up: String, size: Int) {
-        val gap = ROW_GAP.toInt()
-        val topH = (size - gap + 1) / 2
-        val botH = size - gap - topH
         paint.textScaleX = 1f
-        paint.textSize = textSizeForDigitHeight(paint, topH)
-        drawFittedRow(canvas, paint, down, 0, topH, size)
-        drawFittedRow(canvas, paint, up, topH + gap, botH, size)
+        paint.textSize = textSizeForWidth(paint, WIDEST, size)
+        val ref = textBounds(paint, "8")
+        val ink = ref.height().toFloat().coerceAtLeast(1f)
+        val top = ((size - (ink * 2f + ROW_GAP)) / 2f).coerceAtLeast(0f)
+        drawFixedRow(canvas, paint, down, top, ref)
+        drawFixedRow(canvas, paint, up, top + ink + ROW_GAP, ref)
     }
 
-    private fun drawFittedRow(
-        canvas: Canvas,
-        paint: Paint,
-        text: String,
-        top: Int,
-        rowH: Int,
-        size: Int,
-    ) {
+    private fun drawFixedRow(canvas: Canvas, paint: Paint, text: String, top: Float, box: Rect) {
         paint.textScaleX = 1f
         val bounds = textBounds(paint, text)
-        val sx = size.toFloat() / bounds.width().coerceAtLeast(1)
-        val sy = rowH.toFloat() / bounds.height().coerceAtLeast(1)
-        canvas.save()
-        canvas.translate(0f, top.toFloat())
-        canvas.scale(sx, sy)
-        canvas.drawText(text, -bounds.left.toFloat(), -bounds.top.toFloat(), paint)
-        canvas.restore()
+        canvas.drawText(text, -bounds.left.toFloat(), top - box.top, paint)
     }
 
-    private fun textSizeForDigitHeight(paint: Paint, target: Int): Float {
+    private fun textSizeForWidth(paint: Paint, text: String, maxWidth: Int): Float {
         paint.textScaleX = 1f
         var lo = 1f
-        var hi = target * 3f
-        var best = target.toFloat()
-        repeat(20) {
+        var hi = maxWidth * 2f
+        var best = lo
+        repeat(24) {
             val mid = (lo + hi) / 2f
             paint.textSize = mid
-            val height = textBounds(paint, "8").height()
-            if (height == target) return mid
-            if (height < target) {
+            if (textBounds(paint, text).width() <= maxWidth) {
                 best = mid
                 lo = mid
             } else {
@@ -141,5 +127,6 @@ class SpeedIconRenderer {
         const val ARROW = 0.56f
         const val ARROW_TALL = 1.05f
         const val ROW_GAP = 1f
+        const val WIDEST = "4.0M"
     }
 }

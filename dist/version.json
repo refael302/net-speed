@@ -1,6 +1,6 @@
 {
-  "versionCode": 20,
-  "versionName": "1.7.11",
+  "versionCode": 21,
+  "versionName": "1.7.12",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "כל שורה בשורת המצב נמתחת עד הקצה השמאלי והימני. הגובה נשאר מלא."
+  "notes": "בסמל יש שוב ספרה לפני הנקודה, כמו 0.4K. הדיו ממלא את כל 128 הפיקסלים, חוץ מפיקסל אחד בין השורות."
 }

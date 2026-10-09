@@ -34,7 +34,7 @@ class SpeedFormatTest {
         assertEquals("850", label.value)
         assertEquals("KB/s", label.unit)
         assertEquals("6.8 Mbps", label.bits)
-        assertEquals(".9M", label.icon)
+        assertEquals("0.9M", label.icon)
     }
 
     @Test
@@ -62,12 +62,12 @@ class SpeedFormatTest {
 
     @Test
     fun threeDigitIconsUseOneDecimalOfTheNextUnit() {
-        assertEquals(".3K", labelFor(320.0).icon)
-        assertEquals(".2M", labelFor(230_000.0).icon)
+        assertEquals("0.3K", labelFor(320.0).icon)
+        assertEquals("0.2M", labelFor(230_000.0).icon)
     }
 
     @Test
-    fun iconStaysWithinThreeCharacters() {
+    fun iconStaysWithinFourCharacters() {
         val samples = doubleArrayOf(
             0.0, 50.0, 320.0, 950.0, 1_500.0, 12_000.0, 99_600.0,
             230_000.0, 850_000.0, 999_500.0, 1_500_000.0, 12_400_000.0,
@@ -75,7 +75,7 @@ class SpeedFormatTest {
         )
         for (bytes in samples) {
             val icon = labelFor(bytes).icon
-            check(icon.length <= 3) { "$bytes -> $icon" }
+            check(icon.length <= 4) { "$bytes -> $icon" }
         }
     }
 

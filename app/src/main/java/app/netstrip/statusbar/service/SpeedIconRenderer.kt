@@ -28,28 +28,56 @@ class SpeedIconRenderer {
 
     /**
      * Top row is download, bottom row is upload.
-     * Digit height fills each half of the slot. Each label is then scaled
-     * sideways so its ink reaches the left and right edges.
+     * The ink box of each row is the full slot width. Together the rows use
+     * every pixel except one empty pixel between them.
      */
     private fun drawPair(canvas: Canvas, paint: Paint, down: String, up: String, size: Int) {
-        val rowH = (size - ROW_GAP) / 2f
+        val gap = ROW_GAP.toInt()
+        val topH = (size - gap + 1) / 2
+        val botH = size - gap - topH
         paint.textScaleX = 1f
-        paint.textSize = 100f
-        val probeH = textBounds(paint, "8").height().toFloat().coerceAtLeast(1f)
-        paint.textSize = rowH * 100f / probeH
-        val ref = textBounds(paint, "8")
-        drawWideRow(canvas, paint, down, 0f, ref, size)
-        drawWideRow(canvas, paint, up, rowH + ROW_GAP, ref, size)
-        paint.textScaleX = 1f
+        paint.textSize = textSizeForDigitHeight(paint, topH)
+        drawFittedRow(canvas, paint, down, 0, topH, size)
+        drawFittedRow(canvas, paint, up, topH + gap, botH, size)
     }
 
-    private fun drawWideRow(canvas: Canvas, paint: Paint, text: String, top: Float, box: Rect, size: Int) {
+    private fun drawFittedRow(
+        canvas: Canvas,
+        paint: Paint,
+        text: String,
+        top: Int,
+        rowH: Int,
+        size: Int,
+    ) {
         paint.textScaleX = 1f
         val bounds = textBounds(paint, text)
-        val inkW = bounds.width().toFloat().coerceAtLeast(1f)
-        val scaleX = size.toFloat() / inkW
-        paint.textScaleX = scaleX
-        canvas.drawText(text, -bounds.left * scaleX, top - box.top, paint)
+        val sx = size.toFloat() / bounds.width().coerceAtLeast(1)
+        val sy = rowH.toFloat() / bounds.height().coerceAtLeast(1)
+        canvas.save()
+        canvas.translate(0f, top.toFloat())
+        canvas.scale(sx, sy)
+        canvas.drawText(text, -bounds.left.toFloat(), -bounds.top.toFloat(), paint)
+        canvas.restore()
+    }
+
+    private fun textSizeForDigitHeight(paint: Paint, target: Int): Float {
+        paint.textScaleX = 1f
+        var lo = 1f
+        var hi = target * 3f
+        var best = target.toFloat()
+        repeat(20) {
+            val mid = (lo + hi) / 2f
+            paint.textSize = mid
+            val height = textBounds(paint, "8").height()
+            if (height == target) return mid
+            if (height < target) {
+                best = mid
+                lo = mid
+            } else {
+                hi = mid
+            }
+        }
+        return best
     }
 
     private fun textBounds(paint: Paint, text: String): Rect {

@@ -28,28 +28,28 @@ class SpeedIconRenderer {
 
     /**
      * Top row is download, bottom row is upload.
-     * Digit ink fills each half of the slot. Every label uses that same size,
-     * so a short value is not stretched sideways. Width is reduced only enough
-     * for the widest label ("99M") to stay inside the slot.
+     * Digit height fills each half of the slot. Each label is then scaled
+     * sideways so its ink reaches the left and right edges.
      */
     private fun drawPair(canvas: Canvas, paint: Paint, down: String, up: String, size: Int) {
         val rowH = (size - ROW_GAP) / 2f
         paint.textScaleX = 1f
         paint.textSize = 100f
         val probeH = textBounds(paint, "8").height().toFloat().coerceAtLeast(1f)
-        val textSize = rowH * 100f / probeH
-        paint.textSize = textSize
-        val wide = textBounds(paint, WIDEST).width().toFloat().coerceAtLeast(1f)
-        paint.textScaleX = (size.toFloat() / wide).coerceAtMost(1f)
+        paint.textSize = rowH * 100f / probeH
         val ref = textBounds(paint, "8")
-        drawStableRow(canvas, paint, down, 0f, ref)
-        drawStableRow(canvas, paint, up, rowH + ROW_GAP, ref)
+        drawWideRow(canvas, paint, down, 0f, ref, size)
+        drawWideRow(canvas, paint, up, rowH + ROW_GAP, ref, size)
         paint.textScaleX = 1f
     }
 
-    private fun drawStableRow(canvas: Canvas, paint: Paint, text: String, top: Float, box: Rect) {
+    private fun drawWideRow(canvas: Canvas, paint: Paint, text: String, top: Float, box: Rect, size: Int) {
+        paint.textScaleX = 1f
         val bounds = textBounds(paint, text)
-        canvas.drawText(text, -bounds.left.toFloat(), top - box.top, paint)
+        val inkW = bounds.width().toFloat().coerceAtLeast(1f)
+        val scaleX = size.toFloat() / inkW
+        paint.textScaleX = scaleX
+        canvas.drawText(text, -bounds.left * scaleX, top - box.top, paint)
     }
 
     private fun textBounds(paint: Paint, text: String): Rect {
@@ -113,6 +113,5 @@ class SpeedIconRenderer {
         const val ARROW = 0.56f
         const val ARROW_TALL = 1.05f
         const val ROW_GAP = 1f
-        const val WIDEST = "99M"
     }
 }

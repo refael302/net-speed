@@ -34,7 +34,7 @@ class SpeedFormatTest {
         assertEquals("850", label.value)
         assertEquals("KB/s", label.unit)
         assertEquals("6.8 Mbps", label.bits)
-        assertEquals("850K", label.icon)
+        assertEquals("0.9M", label.icon)
     }
 
     @Test
@@ -58,6 +58,12 @@ class SpeedFormatTest {
     @Test
     fun roundingIntoTheNextMegabytePromotesTheIcon() {
         assertEquals("1.0M", labelFor(999_500.0).icon)
+    }
+
+    @Test
+    fun threeDigitIconsUseOneDecimalOfTheNextUnit() {
+        assertEquals("0.3K", labelFor(320.0).icon)
+        assertEquals("0.2M", labelFor(230_000.0).icon)
     }
 
     @Test

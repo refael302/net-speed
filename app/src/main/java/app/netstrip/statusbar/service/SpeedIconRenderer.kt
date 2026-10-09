@@ -18,11 +18,14 @@ class SpeedIconRenderer {
             typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
         }
         when (mode) {
-            IconMode.DOWNLOAD -> drawEntry(canvas, paint, down, pointingUp = false, size, size * 0.50f, 72f)
-            IconMode.UPLOAD -> drawEntry(canvas, paint, up, pointingUp = true, size, size * 0.50f, 72f)
+            IconMode.DOWNLOAD -> drawEntry(canvas, paint, down, pointingUp = false, size, size * 0.50f, size * 0.86f)
+            IconMode.UPLOAD -> drawEntry(canvas, paint, up, pointingUp = true, size, size * 0.50f, size * 0.86f)
             IconMode.BOTH -> {
-                drawEntry(canvas, paint, down, pointingUp = false, size, size * 0.30f, 48f)
-                drawEntry(canvas, paint, up, pointingUp = true, size, size * 0.72f, 48f)
+                val edge = 1f
+                val between = 2f
+                val row = (size - edge * 2f - between) / 2f
+                drawEntry(canvas, paint, down, pointingUp = false, size, edge + row / 2f, row)
+                drawEntry(canvas, paint, up, pointingUp = true, size, edge + row + between + row / 2f, row)
             }
         }
         return bitmap
@@ -35,30 +38,35 @@ class SpeedIconRenderer {
         pointingUp: Boolean,
         size: Int,
         centerY: Float,
-        startSize: Float,
+        rowHeight: Float,
     ) {
-        val maxWidth = size * 0.90f
-        var textSize = startSize
+        val maxWidth = size * 0.98f
+        var textSize = rowHeight
         paint.textSize = textSize
+        var textHeight = paint.descent() - paint.ascent()
+        if (textHeight > rowHeight && textHeight > 0f) {
+            textSize *= rowHeight / textHeight
+            paint.textSize = textSize
+        }
         var textWidth = paint.measureText(text)
-        var marker = textSize * 0.42f
-        while (marker + GAP + textWidth > maxWidth && textSize > 16f) {
-            textSize -= 2f
+        var marker = textSize * ARROW
+        while (marker + GAP + textWidth > maxWidth && textSize > 18f) {
+            textSize -= 1f
             paint.textSize = textSize
             textWidth = paint.measureText(text)
-            marker = textSize * 0.42f
+            marker = textSize * ARROW
         }
         val total = marker + GAP + textWidth
-        val left = (size - total) / 2f
-        drawTriangle(canvas, paint, left + marker / 2f, centerY, marker, pointingUp)
+        val left = ((size - total) / 2f).coerceAtLeast(0f)
+        drawArrow(canvas, paint, left + marker / 2f, centerY, marker, pointingUp)
         val baseline = centerY - (paint.descent() + paint.ascent()) / 2f
         canvas.drawText(text, left + marker + GAP, baseline, paint)
     }
 
-    private fun drawTriangle(canvas: Canvas, paint: Paint, cx: Float, cy: Float, width: Float, pointingUp: Boolean) {
+    private fun drawArrow(canvas: Canvas, paint: Paint, cx: Float, cy: Float, width: Float, pointingUp: Boolean) {
         val path = Path()
         val half = width / 2f
-        val height = width * 0.72f
+        val height = width * 1.05f
         if (pointingUp) {
             path.moveTo(cx, cy - height / 2f)
             path.lineTo(cx - half, cy + height / 2f)
@@ -69,10 +77,12 @@ class SpeedIconRenderer {
             path.lineTo(cx + half, cy - height / 2f)
         }
         path.close()
+        paint.style = Paint.Style.FILL
         canvas.drawPath(path, paint)
     }
 
     private companion object {
-        const val GAP = 6f
+        const val GAP = 3f
+        const val ARROW = 0.56f
     }
 }

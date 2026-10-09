@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "1.7.4",
+  "versionCode": 14,
+  "versionName": "1.7.5",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "Wi-Fi וסלולר מופיעים אחד מתחת לשני.\nליד כל אחד רשום סך התעבורה של המסך שמוצג: שעה בגרף הדקות, יממה בגרף השעות, וחודש בגרף הימים."
+  "notes": "המספרים בשורת המצב ממלאים את הסמל עד הקצוות, עם חץ מלא וגדול יותר.\nמספר ארוך מתקצר: 230K מוצג כ-0.2M, ו-320B כ-0.3K."
 }

@@ -50,17 +50,24 @@ private fun formatBits(bitsPerSec: Double): String {
 }
 
 private fun iconToken(bytesPerSec: Double): String {
-    return when {
-        bytesPerSec < 1_000.0 -> "0K"
-        bytesPerSec < 1_000_000.0 -> {
-            val kilo = (bytesPerSec / 1_000.0).roundToInt()
-            if (kilo >= 1_000) "1.0M" else "${kilo}K"
-        }
-        bytesPerSec < 10_000_000.0 -> String.format(Locale.US, "%.1fM", bytesPerSec / 1_000_000.0)
-        bytesPerSec < 1_000_000_000.0 -> {
-            val mega = (bytesPerSec / 1_000_000.0).roundToInt()
-            if (mega >= 1_000) "1.0G" else "${mega}M"
-        }
-        else -> String.format(Locale.US, "%.1fG", bytesPerSec / 1_000_000_000.0)
+    if (bytesPerSec < 100.0) return "0K"
+    val kilo = bytesPerSec / 1_000.0
+    if (kilo < 1.0) return oneDecimal(kilo, "K")
+    if (kilo < 100.0) {
+        val whole = kilo.roundToInt()
+        if (whole < 100) return "${whole}K"
     }
+    val mega = bytesPerSec / 1_000_000.0
+    if (mega < 10.0) return oneDecimal(mega, "M")
+    if (mega < 100.0) {
+        val whole = mega.roundToInt()
+        if (whole < 100) return "${whole}M"
+    }
+    val giga = bytesPerSec / 1_000_000_000.0
+    if (giga < 10.0) return oneDecimal(giga, "G")
+    return "${giga.roundToInt()}G"
+}
+
+private fun oneDecimal(scaled: Double, unit: String): String {
+    return String.format(Locale.US, "%.1f%s", scaled, unit)
 }

@@ -49,25 +49,34 @@ private fun formatBits(bitsPerSec: Double): String {
     }
 }
 
+/**
+ * At most three characters, so two rows can fill the status-icon height
+ * without squashing the digits. Below one unit the leading zero is dropped
+ * (".4K", ".2M"). From one unit up the icon is a whole number ("2M", "12M").
+ */
 private fun iconToken(bytesPerSec: Double): String {
     if (bytesPerSec < 100.0) return "0K"
     val kilo = bytesPerSec / 1_000.0
-    if (kilo < 1.0) return oneDecimal(kilo, "K")
     if (kilo < 100.0) {
+        if (kilo < 1.0) return tenths(kilo, "K")
         val whole = kilo.roundToInt()
         if (whole < 100) return "${whole}K"
     }
     val mega = bytesPerSec / 1_000_000.0
-    if (mega < 10.0) return oneDecimal(mega, "M")
     if (mega < 100.0) {
+        if (mega < 1.0) return tenths(mega, "M")
         val whole = mega.roundToInt()
         if (whole < 100) return "${whole}M"
     }
     val giga = bytesPerSec / 1_000_000_000.0
-    if (giga < 10.0) return oneDecimal(giga, "G")
-    return "${giga.roundToInt()}G"
+    if (giga < 1.0) return tenths(giga, "G")
+    val whole = giga.roundToInt()
+    return if (whole >= 100) "99G" else "${whole}G"
 }
 
-private fun oneDecimal(scaled: Double, unit: String): String {
-    return String.format(Locale.US, "%.1f%s", scaled, unit)
+private fun tenths(scaled: Double, unit: String): String {
+    val tenths = (scaled * 10.0).roundToInt()
+    if (tenths >= 10) return "1$unit"
+    if (tenths <= 0) return "0$unit"
+    return ".$tenths$unit"
 }

@@ -28,38 +28,28 @@ class SpeedIconRenderer {
 
     /**
      * Top row is download, bottom row is upload.
-     * Each row fills the slot from edge to edge. Digit height stays natural;
-     * only the width is scaled so a short label still reaches both sides.
+     * Digit ink fills each half of the slot. Every label uses that same size,
+     * so a short value is not stretched sideways. Width is reduced only enough
+     * for the widest label ("99M") to stay inside the slot.
      */
     private fun drawPair(canvas: Canvas, paint: Paint, down: String, up: String, size: Int) {
         val rowH = (size - ROW_GAP) / 2f
-        paint.textSize = rowH
-        val probe = textBounds(paint, "8")
-        val inkPerEm = probe.height().toFloat() / rowH
-        val textSize = if (inkPerEm > 0f) rowH / inkPerEm else rowH
+        paint.textScaleX = 1f
+        paint.textSize = 100f
+        val probeH = textBounds(paint, "8").height().toFloat().coerceAtLeast(1f)
+        val textSize = rowH * 100f / probeH
         paint.textSize = textSize
+        val wide = textBounds(paint, WIDEST).width().toFloat().coerceAtLeast(1f)
+        paint.textScaleX = (size.toFloat() / wide).coerceAtMost(1f)
         val ref = textBounds(paint, "8")
-        drawFilledRow(canvas, paint, down, 0f, ref, textSize, size)
-        drawFilledRow(canvas, paint, up, rowH + ROW_GAP, ref, textSize, size)
+        drawStableRow(canvas, paint, down, 0f, ref)
+        drawStableRow(canvas, paint, up, rowH + ROW_GAP, ref)
+        paint.textScaleX = 1f
     }
 
-    private fun drawFilledRow(
-        canvas: Canvas,
-        paint: Paint,
-        text: String,
-        top: Float,
-        box: Rect,
-        textSize: Float,
-        size: Int,
-    ) {
-        paint.textSize = textSize
-        paint.textScaleX = 1f
+    private fun drawStableRow(canvas: Canvas, paint: Paint, text: String, top: Float, box: Rect) {
         val bounds = textBounds(paint, text)
-        val inkW = bounds.width().toFloat().coerceAtLeast(1f)
-        val scaleX = size.toFloat() / inkW
-        paint.textScaleX = scaleX
-        canvas.drawText(text, -bounds.left * scaleX, top - box.top, paint)
-        paint.textScaleX = 1f
+        canvas.drawText(text, -bounds.left.toFloat(), top - box.top, paint)
     }
 
     private fun textBounds(paint: Paint, text: String): Rect {
@@ -123,5 +113,6 @@ class SpeedIconRenderer {
         const val ARROW = 0.56f
         const val ARROW_TALL = 1.05f
         const val ROW_GAP = 1f
+        const val WIDEST = "99M"
     }
 }

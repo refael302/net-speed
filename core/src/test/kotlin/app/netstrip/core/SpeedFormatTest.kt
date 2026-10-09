@@ -34,7 +34,7 @@ class SpeedFormatTest {
         assertEquals("850", label.value)
         assertEquals("KB/s", label.unit)
         assertEquals("6.8 Mbps", label.bits)
-        assertEquals("0.9M", label.icon)
+        assertEquals(".9M", label.icon)
     }
 
     @Test
@@ -43,7 +43,7 @@ class SpeedFormatTest {
         assertEquals("1.50", label.value)
         assertEquals("MB/s", label.unit)
         assertEquals("12.0 Mbps", label.bits)
-        assertEquals("1.5M", label.icon)
+        assertEquals("2M", label.icon)
     }
 
     @Test
@@ -57,13 +57,26 @@ class SpeedFormatTest {
 
     @Test
     fun roundingIntoTheNextMegabytePromotesTheIcon() {
-        assertEquals("1.0M", labelFor(999_500.0).icon)
+        assertEquals("1M", labelFor(999_500.0).icon)
     }
 
     @Test
     fun threeDigitIconsUseOneDecimalOfTheNextUnit() {
-        assertEquals("0.3K", labelFor(320.0).icon)
-        assertEquals("0.2M", labelFor(230_000.0).icon)
+        assertEquals(".3K", labelFor(320.0).icon)
+        assertEquals(".2M", labelFor(230_000.0).icon)
+    }
+
+    @Test
+    fun iconStaysWithinThreeCharacters() {
+        val samples = doubleArrayOf(
+            0.0, 50.0, 320.0, 950.0, 1_500.0, 12_000.0, 99_600.0,
+            230_000.0, 850_000.0, 999_500.0, 1_500_000.0, 12_400_000.0,
+            99_600_000.0, 1_500_000_000.0, 100_000_000_000.0,
+        )
+        for (bytes in samples) {
+            val icon = labelFor(bytes).icon
+            check(icon.length <= 3) { "$bytes -> $icon" }
+        }
     }
 
     @Test

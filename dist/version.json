@@ -1,6 +1,6 @@
 {
-  "versionCode": 18,
-  "versionName": "1.7.9",
+  "versionCode": 19,
+  "versionName": "1.7.10",
   "apkUrl": "https://raw.githubusercontent.com/refael302/net-speed/main/dist/netstrip.apk",
-  "notes": "המספרים בשורת המצב ממלאים את כל המשבצת, לגובה ולרוחב."
+  "notes": "המספרים בשורת המצב מגיעים עד למעלה ולמטה כמו הסמל שלידם, בלי למתוח כל מספר לרוחב. הכיתוב קצר יותר כדי שהספרות יישארו באותו גודל."
 }
